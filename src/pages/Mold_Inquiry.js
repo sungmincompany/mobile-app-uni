@@ -60,6 +60,7 @@ const DB_Inquiry = () => {
       dataIndex: "amt",
       key: "amt",
       align: "center",
+      render: (text) => text.toLocaleString(), 
     },
     {
       title: "LOT NO",
