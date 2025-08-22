@@ -1,0 +1,24 @@
+/* src/pages/Register.css */
+.register-container {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: #f7f9fc;
+    min-height: 100vh;
+  }
+  
+  .register-container .ant-typography {
+    margin-bottom: 12px;
+  }
+  
+ 
+  /* 화면 너비가 768px 이하일 때 적용 */
+@media (max-width: 768px) {
+  .register-container .ant-form-item {
+    margin-bottom: 10px; /* 모바일 뷰에서 상하 간격 조정 */
+  }
+  
+  .register-container .ant-form-item-label {
+    padding-bottom: 2px; /* 레이블과 입력 필드 사이 간격 조정 */
+  }
+}

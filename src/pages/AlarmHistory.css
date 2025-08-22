@@ -1,0 +1,37 @@
+.alarm-history-container {
+  padding: 5px 20px 20px 20px;
+}
+
+.ant-table-tbody>tr>td {
+  word-break: break-word;
+}
+
+
+
+.alarm-history-row td {
+  text-align: center;
+
+}
+
+.severity-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+
+
+.AlarmHistory_dateCell div {
+  font-size: 9.7px; /* 폰트 사이즈를 줄이지 않고도 */
+  line-height: 1; /* 줄 간격을 줄여 공간 확보 */
+  padding: 2px 0; /* 패딩 감소 */
+  
+}
+
+.alarm-history-container .ant-table-cell {
+  padding: 10px !important; /* 전체 셀의 패딩 감소 */
+}
+
+
