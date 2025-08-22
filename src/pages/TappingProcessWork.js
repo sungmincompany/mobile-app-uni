@@ -212,16 +212,13 @@ const TappingProcessWork = () => {
             align: 'center',
             width: 120,
             render: (value, record) => {
-            // `value` (Reel당 수량)에 toLocaleString() 적용
-            const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
-
-            return (
-                <>
-                <div>{formattedValue}</div>  {/* Reel당 수량 (amt) */}
-                <div>{record.lot_seq}</div>  {/* Reel 개수 (lot_seq) */}
-                <div>{record.man_cd}</div>   {/* 작업자 (man_cd) */}
-                </>
-            );
+                return (
+                    <>
+                        <div>{value}</div>        {/* Reel당 수량 (amt) */}
+                        <div>{record.lot_seq}</div>  {/* Reel 개수 (lot_seq) */}
+                        <div>{record.man_cd}</div>   {/* 작업자 (man_cd) */}
+                    </>
+                );
             },
         },
         {

@@ -229,25 +229,22 @@ const TestResult = () => {
         return prod ? prod.jepum_nm : code;
       },
     },
-  {
-    title: '수량 및 작업자 Bin no',
-    dataIndex: 'amt',
-    key: 'amtManBigo',
-    align: 'center',
-    width: 140,
-    render: (value, record) => {
-      // `value`에 toLocaleString() 적용
-      const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
-
-      return (
-        <>
-          <div>{formattedValue}</div>
-          <div>{record.man_cd}</div>
-          <div>{record.bigo_1}</div>
-        </>
-      );
+    {
+      title: '수량 및 작업자 Bin no',
+      dataIndex: 'amt',
+      key: 'amtManBigo',
+      align: 'center',
+      width: 140,
+      render: (value, record) => {
+        return (
+          <>
+            <div>{value}</div>
+            <div>{record.man_cd}</div>
+            <div>{record.bigo_1}</div>
+          </>
+        );
+      },
     },
-  },
     {
       title: '작업',
       key: 'action',

@@ -59,7 +59,6 @@ const DB_Inquiry = () => {
       dataIndex: "amt",
       key: "amt",
       align: "center",
-      render: (text) => text.toLocaleString(), // 이 부분을 추가
     },
     {
       title: "LOT NO",
