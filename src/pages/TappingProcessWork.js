@@ -25,7 +25,7 @@ const TappingProcessWork = () => {
     // 1) 제품목록 불러오기
     useEffect(() => {
         // 예: /api/select/jepum/jepum?v_db=16_UR
-        fetch(`http://118.43.32.5:8999/api/select/jepum/jepum?v_db=${v_db}`)
+        fetch(`/api/select/jepum/jepum?v_db=${v_db}`)
             .then(res => res.json())
             .then(data => setProductList(data))
             .catch(err => console.error('제품목록 에러:', err));
@@ -37,7 +37,7 @@ const TappingProcessWork = () => {
         if (!lotNoValue) return;
 
         try {
-            const url = `http://118.43.32.5:8999/api/select/etc/tapping-check-lot?v_db=${v_db}&lot_no=${lotNoValue}`;
+            const url = `/api/select/etc/tapping-check-lot?v_db=${v_db}&lot_no=${lotNoValue}`;
             const res = await fetch(url);
             const data = await res.json();
             if (!res.ok) {
@@ -67,7 +67,7 @@ const TappingProcessWork = () => {
         try {
             const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
             const toParam = endDate ? endDate.format('YYYYMMDD') : '20991231';
-            const url = `http://118.43.32.5:8999/api/select/etc/tapping-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`;
+            const url = `/api/select/etc/tapping-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error('조회오류');
             const data = await res.json();
@@ -99,7 +99,7 @@ const TappingProcessWork = () => {
 
             if (!editingRecord) {
                 // insert
-                const res = await fetch(`http://118.43.32.5:8999/api/insert/etc/tapping-result?v_db=${v_db}`, {
+                const res = await fetch(`/api/insert/etc/tapping-result?v_db=${v_db}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
@@ -115,7 +115,7 @@ const TappingProcessWork = () => {
                 }
             } else {
                 // update
-                const res = await fetch(`http://118.43.32.5:8999/api/update/etc/tapping-result?v_db=${v_db}`, {
+                const res = await fetch(`/api/update/etc/tapping-result?v_db=${v_db}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
@@ -167,7 +167,7 @@ const TappingProcessWork = () => {
             title: '삭제하시겠습니까?',
             onOk: async () => {
                 try {
-                    const url = `http://118.43.32.5:8999/api/delete/etc/tapping-result?v_db=${v_db}&lot_no=${record.lot_no}`;
+                    const url = `/api/delete/etc/tapping-result?v_db=${v_db}&lot_no=${record.lot_no}`;
                     const res = await fetch(url, { method: 'DELETE' });
                     const data = await res.json();
                     if (data.error) {

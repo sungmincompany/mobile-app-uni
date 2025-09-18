@@ -24,7 +24,7 @@ const AlarmHistory = () => {
 
   useEffect(() => {
     // fetch를 통해 백엔드로부터 JSON 데이터를 가져옴
-    fetch(`http://118.43.32.5:8999/api/select/smart/smart-log?v_db=${v_db}`)
+    fetch(`/api/select/smart/smart-log?v_db=${v_db}`)
       .then((response) => response.json())
       .then((data) => {
         // 받아온 데이터에 key를 부여(테이블 고유 key)

@@ -34,7 +34,7 @@ const TestResult = () => {
 
   // 2) 제품 목록 불러오기
   useEffect(() => {
-    fetch(`http://118.43.32.5:8999/api/select/jepum/jepum?v_db=${v_db}`)
+    fetch(`/api/select/jepum/jepum?v_db=${v_db}`)
       .then((res) => res.json())
       .then((data) => setProductList(data))
       .catch((err) => console.error('제품 목록 에러:', err));
@@ -47,7 +47,7 @@ const TestResult = () => {
       const toParam = endDate ? endDate.format('YYYYMMDD') : '20991231';
 
       const res = await fetch(
-        `http://118.43.32.5:8999/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`
+        `/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`
       );
       if (!res.ok) throw new Error('TEST 실적 조회 오류');
       const data = await res.json();
@@ -86,7 +86,7 @@ const TestResult = () => {
       if (!editingRecord) {
         // 신규 등록
         const response = await fetch(
-          `http://118.43.32.5:8999/api/insert/etc/test-result?v_db=${v_db}`,
+          `/api/insert/etc/test-result?v_db=${v_db}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -106,7 +106,7 @@ const TestResult = () => {
       } else {
         // 수정
         const response = await fetch(
-          `http://118.43.32.5:8999/api/update/etc/test-result?v_db=${v_db}`,
+          `/api/update/etc/test-result?v_db=${v_db}`,
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -167,7 +167,7 @@ const TestResult = () => {
       cancelText: '아니오',
       onOk: async () => {
         try {
-          const url = `http://118.43.32.5:8999/api/delete/etc/test-result?v_db=${v_db}&lot_no=${record.lot_no}`;
+          const url = `/api/delete/etc/test-result?v_db=${v_db}&lot_no=${record.lot_no}`;
           const res = await fetch(url, { method: 'DELETE' });
           const resData = await res.json();
           if (resData.error) {

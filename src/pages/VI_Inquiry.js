@@ -18,7 +18,7 @@ const DB_Inquiry = () => {
       const toParam   = toDt   ? toDt.format("YYYYMMDD")   : "20991231";
 
       const response = await fetch(
-        `http://118.43.32.5:8999/api/select/segsan/process?v_db=${v_db}&prg_cd=${prg_cd}&from_dt=${fromParam}&to_dt=${toParam}`
+        `/api/select/segsan/process?v_db=${v_db}&prg_cd=${prg_cd}&from_dt=${fromParam}&to_dt=${toParam}`
       );
       if (!response.ok) throw new Error("서버 응답 에러");
       const result = await response.json();

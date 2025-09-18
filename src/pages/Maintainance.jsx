@@ -11,7 +11,7 @@ const Maintainance = () => {
   // 설비 점검내역 API 호출 함수
   const fetchMaintenanceData = async () => {
     try {
-      const response = await fetch(`http://118.43.32.5:8999/api/select/equip/inspect?v_db=${v_db}`);
+      const response = await fetch(`/api/select/equip/inspect?v_db=${v_db}`);
       const data = await response.json();
       // 테이블에 key 값을 추가합니다.
       const formattedData = data.map((item, index) => ({ ...item, key: index }));
