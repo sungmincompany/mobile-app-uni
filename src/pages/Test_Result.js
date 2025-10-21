@@ -1,7 +1,7 @@
 // Test_Result.js (예시: StockOutResult 구조 기반, worker → man_cd, quantity → amt)
 
-import React, { useState, useEffect } from 'react';
-import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover } from 'antd';
+import React, { useState, useEffect, useRef } from 'react'; // useRef 추가
+import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space } from 'antd'; // Switch, Space 추가
 import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
@@ -31,6 +31,87 @@ const TestResult = () => {
 
   // DB 스키마
   const v_db = '16_UR';   // 예시
+
+  // --- 바코드 스캔 관련 상태 및 Ref 추가 ---
+  const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 바코드 스캔 ON/OFF 상태 (초기값 true)
+  const barcodeInputRef = useRef(null); // 바코드 입력 필드 Ref
+  const [idleCountdown, setIdleCountdown] = useState(5); // 카운트다운 상태
+  const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
+  const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
+
+  // --- 유휴 상태 감지 및 자동 포커스 로직 ---
+  useEffect(() => {
+    // 타이머를 리셋하는 함수
+    const resetIdleTimer = () => {
+      // 기존 타이머 제거
+      clearTimeout(idleTimerRef.current);
+      clearInterval(countdownTimerRef.current);
+
+      // 자동 포커스 기능이 꺼져있으면 여기서 중단
+      if (!barcodeScanOn || activeTab !== '1') {
+        return;
+      }
+      
+      // 카운트다운 초기화 및 1초마다 감소
+      setIdleCountdown(5);
+      countdownTimerRef.current = setInterval(() => {
+        setIdleCountdown(prev => Math.max(0, prev - 1));
+      }, 1000);
+
+      // 5초 후에 포커스 실행
+      idleTimerRef.current = setTimeout(() => {
+        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current.input) {
+          barcodeInputRef.current.focus();
+        }
+      }, 5000);
+    };
+
+    // 자동 포커스가 켜져있고, 등록 탭일 때만 이벤트 리스너 활성화
+    if (barcodeScanOn && activeTab === '1') {
+      // 이벤트 리스너 추가
+      const events = ['mousedown', 'touchstart', 'keydown'];
+      events.forEach(event => window.addEventListener(event, resetIdleTimer));
+
+      // 타이머 최초 실행
+      resetIdleTimer();
+
+      // 클린업 함수: 컴포넌트 언마운트 또는 의존성 변경 시 실행
+      return () => {
+        events.forEach(event => window.removeEventListener(event, resetIdleTimer));
+        clearTimeout(idleTimerRef.current);
+        clearInterval(countdownTimerRef.current);
+      };
+    } else {
+      // 자동 포커스가 꺼져있으면 모든 타이머 정리
+      clearTimeout(idleTimerRef.current);
+      clearInterval(countdownTimerRef.current);
+    }
+  }, [barcodeScanOn, activeTab]);
+
+
+  // --- 바코드 스캔 처리 핸들러 (내용은 실제 로직에 맞게 구현 필요) ---
+  const handleBarcodeScan = (e) => {
+    const barcodeValue = e.target.value;
+    if (barcodeValue) { // barcodeScanOn 조건 제거
+      console.log('스캔된 바코드:', barcodeValue);
+      // ===========================================
+      // 여기에 바코드 값 처리 로직을 구현하세요.
+      // 예시: 바코드 값을 파싱하여 Form 필드 자동 채우기
+      // try {
+      //   const { lot_no, jepum_cd } = parseBarcode(barcodeValue); // 바코드 파싱 함수 (별도 구현 필요)
+      //   form.setFieldsValue({ lot_no, jepum_cd });
+      //   message.success('바코드 정보가 적용되었습니다.');
+      // } catch (error) {
+      //   message.error('바코드 처리 중 오류가 발생했습니다.');
+      //   console.error("바코드 처리 오류:", error);
+      // }
+      // ===========================================
+
+      // 스캔 후 입력 필드 초기화 (선택 사항)
+      form.setFieldsValue({ barcodeScan: '' }); // 입력 필드 비우기
+    }
+  };
+
 
   // 2) 제품 목록 불러오기
   useEffect(() => {
@@ -65,6 +146,7 @@ const TestResult = () => {
 
   useEffect(() => {
     fetchTestResults(fromDt, toDt);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
   // 4) 등록/수정 처리
@@ -284,14 +366,36 @@ const TestResult = () => {
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
+           {/* --- 바코드 스캔 영역 --- */}
+           <Form.Item label="바코드 스캔">
+             <Space>
+               <Input
+                 ref={barcodeInputRef} // Ref 연결
+                 placeholder="바코드를 스캔하세요"
+                 name="barcodeScan" // name 추가 (Form 관리 목적)
+                 onPressEnter={handleBarcodeScan} // Enter 키 입력 시 스캔 처리
+               />
+               <Switch
+                 checkedChildren="ON"
+                 unCheckedChildren="OFF"
+                 checked={barcodeScanOn}
+                 onChange={setBarcodeScanOn} // 스위치 상태 변경
+               />
+                {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold' }}>({idleCountdown}초)</span>}
+             </Space>
+           </Form.Item>
+           {/* --- 기존 Form 내용 --- */}
           <Form
             form={form}
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 1, work_dt: dayjs() }}
+            initialValues={{ amt: 1 , work_dt: dayjs() }} // 초기 수량 및 날짜 값 설정
             style={{ maxWidth: 600 }}
           >
+            {/* Form의 name과 Input의 name 이 중복되지 않도록 주의 */}
+            <Form.Item name="barcodeScan" hidden><Input /></Form.Item>
+
             <Form.Item
               label="작업일자"
               name="work_dt"
@@ -343,8 +447,12 @@ const TestResult = () => {
                 <Col flex="auto">
                   <InputNumber
                     min={1}
-                    value={amt}
-                    onChange={(value) => setAmt(value)}
+                    value={amt} // 상태 값 바인딩
+                    onChange={(value) => { // 상태 업데이트 핸들러
+                      const val = value || 1; // null이나 0일 경우 1로 처리
+                      setAmt(val);
+                      form.setFieldsValue({ amt: val }); // Form 필드 값도 업데이트
+                    }}
                     style={{ width: '100%' }}
                   />
                 </Col>
@@ -377,7 +485,16 @@ const TestResult = () => {
               <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
                 {editingRecord ? '수정하기' : '등록하기'}
               </Button>
-              <Button onClick={() => form.resetFields()}>초기화</Button>
+              <Button onClick={() => {
+                 form.resetFields(); // 모든 필드 초기화
+                 setEditingRecord(null); // 수정 상태 초기화 추가
+                 setAmt(1); // 수량 초기화 추가
+                 form.setFieldsValue({ work_dt: dayjs() }); // 작업일자 오늘로 재설정
+                 // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
+                 if (barcodeScanOn && barcodeInputRef.current) {
+                   barcodeInputRef.current.focus();
+                 }
+               }}>초기화</Button>
             </Form.Item>
           </Form>
         </TabPane>
@@ -417,3 +534,4 @@ const TestResult = () => {
 };
 
 export default TestResult;
+
