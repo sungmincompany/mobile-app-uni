@@ -289,7 +289,7 @@ const TestResult = () => {
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 1 }}
+            initialValues={{ amt: 1, work_dt: dayjs() }}
             style={{ maxWidth: 600 }}
           >
             <Form.Item
