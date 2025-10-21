@@ -35,7 +35,7 @@ const TestResult = () => {
   // --- 바코드 스캔 관련 상태 및 Ref 추가 ---
   const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 바코드 스캔 ON/OFF 상태 (초기값 true)
   const barcodeInputRef = useRef(null); // 바코드 입력 필드 Ref
-  const [idleCountdown, setIdleCountdown] = useState(5); // 카운트다운 상태
+  const [idleCountdown, setIdleCountdown] = useState(10); // 카운트다운 상태 (10초로 변경)
   const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
   const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
 
@@ -58,17 +58,17 @@ const TestResult = () => {
       }
       
       // 카운트다운 초기화 및 1초마다 감소
-      setIdleCountdown(5);
+      setIdleCountdown(10); // 10초로 변경
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown(prev => Math.max(0, prev - 1));
       }, 1000);
 
-      // 5초 후에 포커스 실행
+      // 10초 후에 포커스 실행
       idleTimerRef.current = setTimeout(() => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current.input) {
           barcodeInputRef.current.focus();
         }
-      }, 5000);
+      }, 10000); // 10초로 변경
     };
 
     // 자동 포커스가 켜져있고, 등록 탭일 때만 이벤트 리스너 활성화
@@ -373,21 +373,27 @@ const TestResult = () => {
         <TabPane tab="등록" key="1">
            {/* --- 바코드 스캔 영역 --- */}
            <Form.Item label="자동 포커스">
-             <Space>
-               <Input
-                 ref={barcodeInputRef} // Ref 연결
-                 placeholder="바코드를 스캔하세요"
-                 name="barcodeScan" // name 추가 (Form 관리 목적)
-                 onPressEnter={handleBarcodeScan} // Enter 키 입력 시 스캔 처리
-               />
-               <Switch
-                 checkedChildren="ON"
-                 unCheckedChildren="OFF"
-                 checked={barcodeScanOn}
-                 onChange={setBarcodeScanOn} // 스위치 상태 변경
-               />
-                {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold' }}>({idleCountdown}초)</span>}
-             </Space>
+             <Row gutter={8} align="middle" wrap={false}>
+               <Col flex="auto">
+                 <Input
+                   ref={barcodeInputRef}
+                   placeholder="바코드를 스캔하세요"
+                   name="barcodeScan"
+                   onPressEnter={handleBarcodeScan}
+                 />
+               </Col>
+               <Col flex="none">
+                 <Space>
+                   <Switch
+                     checkedChildren="ON"
+                     unCheckedChildren="OFF"
+                     checked={barcodeScanOn}
+                     onChange={setBarcodeScanOn}
+                   />
+                   {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold', whiteSpace: 'nowrap' }}>({idleCountdown}초)</span>}
+                 </Space>
+               </Col>
+             </Row>
            </Form.Item>
            {/* --- 기존 Form 내용 --- */}
           <Form
