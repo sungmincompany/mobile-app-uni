@@ -39,29 +39,9 @@ const TestResult = () => {
   const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
   const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
 
-  // --- '두번 터치로 키보드/드롭다운 열기'를 위한 상태 및 핸들러 ---
-  const [readOnlyStates, setReadOnlyStates] = useState({
-    lot_no: true,
-    amt: true,
-    bin_no: true,
-    man_cd: true,
-    jepum_cd: true, // 제품 선택 필드 추가
-  });
-  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false); // 제품 드롭다운 상태 추가
-
-
-  const handleInputFocus = (e) => {
-    const { name } = e.target;
-    // 해당 필드의 readOnly 상태를 false로 변경하여 편집 가능하게 만듭니다.
-    // 첫 포커스에서는 키보드가 올라오지 않고, 두 번째 터치(포커스)부터 키보드가 나타납니다.
-    setReadOnlyStates(prev => ({ ...prev, [name]: false }));
-  };
-
-  const handleInputBlur = (e) => {
-    const { name } = e.target;
-    // 포커스가 해제되면 다시 readOnly 상태로 변경합니다.
-    setReadOnlyStates(prev => ({ ...prev, [name]: true }));
-  };
+  // --- '두번 터치로 드롭다운 열기'를 위한 상태 (제품 선택 필드 전용) ---
+  const [isProductSelectReady, setIsProductSelectReady] = useState(false);
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
 
   // --- 유휴 상태 감지 및 자동 포커스 로직 ---
@@ -441,9 +421,6 @@ const TestResult = () => {
               <Input 
                 name="lot_no"
                 placeholder="LOT No" 
-                readOnly={readOnlyStates.lot_no}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
@@ -459,8 +436,8 @@ const TestResult = () => {
                 // --- 드롭다운 제어 로직 추가 ---
                 open={isProductDropdownOpen}
                 onFocus={() => {
-                  if (readOnlyStates.jepum_cd) {
-                    setReadOnlyStates(prev => ({ ...prev, jepum_cd: false }));
+                  if (!isProductSelectReady) {
+                    setIsProductSelectReady(true);
                   } else {
                     setIsProductDropdownOpen(true);
                   }
@@ -472,11 +449,11 @@ const TestResult = () => {
                 }}
                 onBlur={() => {
                   setIsProductDropdownOpen(false);
-                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
+                  setIsProductSelectReady(false);
                 }}
                 onSelect={() => {
                   setIsProductDropdownOpen(false);
-                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
+                  setIsProductSelectReady(false);
                 }}
                 // ---------------------------------
                 filterOption={(input, option) => {
@@ -503,9 +480,6 @@ const TestResult = () => {
                     name="amt"
                     min={1}
                     value={amt} // 상태 값 바인딩
-                    readOnly={readOnlyStates.amt}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
                     onChange={(value) => { // 상태 업데이트 핸들러
                       const val = value || 1; // null이나 0일 경우 1로 처리
                       setAmt(val);
@@ -531,9 +505,6 @@ const TestResult = () => {
               <Input 
                 name="bin_no"
                 placeholder="BIN No" 
-                readOnly={readOnlyStates.bin_no}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
@@ -545,9 +516,6 @@ const TestResult = () => {
               <Input 
                 name="man_cd"
                 placeholder="작업자명" 
-                readOnly={readOnlyStates.man_cd}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
