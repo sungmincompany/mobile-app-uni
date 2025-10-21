@@ -94,26 +94,34 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- 바코드 스캔 처리 핸들러 (내용은 실제 로직에 맞게 구현 필요) ---
+  // --- 바코드 스캔 처리 핸들러 ---
   const handleBarcodeScan = (e) => {
-    const barcodeValue = e.target.value;
-    if (barcodeValue) { // barcodeScanOn 조건 제거
+    const barcodeValue = e.target.value.trim();
+    if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
-      // ===========================================
-      // 여기에 바코드 값 처리 로직을 구현하세요.
-      // 예시: 바코드 값을 파싱하여 Form 필드 자동 채우기
-      // try {
-      //   const { lot_no, jepum_cd } = parseBarcode(barcodeValue); // 바코드 파싱 함수 (별도 구현 필요)
-      //   form.setFieldsValue({ lot_no, jepum_cd });
-      //   message.success('바코드 정보가 적용되었습니다.');
-      // } catch (error) {
-      //   message.error('바코드 처리 중 오류가 발생했습니다.');
-      //   console.error("바코드 처리 오류:", error);
-      // }
-      // ===========================================
 
-      // 스캔 후 입력 필드 초기화 (선택 사항)
-      form.setFieldsValue({ barcodeScan: '' }); // 입력 필드 비우기
+      // 스캔된 값에 따라 해당 필드에 값을 세팅
+      if (barcodeValue === '11') {
+        form.setFieldsValue({ dev_no: barcodeValue });
+        message.success(`장비번호가 '${barcodeValue}' (으)로 설정되었습니다.`);
+      } else if (barcodeValue === '13') {
+        form.setFieldsValue({ bin_no: barcodeValue });
+        message.success(`BIN No가 '${barcodeValue}' (으)로 설정되었습니다.`);
+      } else {
+        form.setFieldsValue({ lot_no2: barcodeValue });
+        message.success(`상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`);
+      }
+
+      // 스캔 후 입력 필드 초기화
+      // setTimeout을 사용하여 Form 값 세팅이 완료된 후 입력 필드를 비웁니다.
+      setTimeout(() => {
+        form.setFieldsValue({ barcodeScan: '' });
+      }, 0);
+      
+      // 다시 스캔할 수 있도록 바코드 입력 필드에 포커스
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
     }
   };
 
@@ -163,6 +171,8 @@ const TestResult = () => {
       // 공통 body
       const bodyPayload = {
         lot_no: values.lot_no,
+        lot_no2: values.lot_no2, // 상위 LOT No 추가
+        dev_no: values.dev_no,   // 장비번호 추가
         jepum_cd: values.jepum_cd,
         amt: values.amt,         // 수량
         man_cd: values.man_cd,   // 작업자(사번, 코드 등)
@@ -238,6 +248,8 @@ const TestResult = () => {
 
     form.setFieldsValue({
       lot_no: record.lot_no,
+      lot_no2: record.lot_no2, // 상위 LOT No 추가
+      dev_no: record.dev_no,   // 장비번호 추가
       jepum_cd: record.jepum_cd,
       amt: record.amt,
       man_cd: record.man_cd,    // 백엔드 조회 시 man_cd 로 내려오는 경우
@@ -290,20 +302,24 @@ const TestResult = () => {
       dataIndex: 'work_dt',
       key: 'work_dt',
       align: 'center',
-      width: 160,
+      width: 100,
       render: (text) => {
-        // "20250301" → "2025-03-01" 표시
         if (!text || text.length !== 8) return text;
         return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
       },
     },
     {
-      title: 'LOT No',
+      title: 'LOT 정보',
       dataIndex: 'lot_no',
-      key: 'lot_no',
+      key: 'lot_info',
       align: 'center',
       width: 120,
-
+      render: (value, record) => (
+        <>
+          <div>{value}</div>
+          <div style={{ color: 'gray' }}>{record.lot_no2}</div>
+        </>
+      ),
     },
     {
       title: '제품',
@@ -317,17 +333,18 @@ const TestResult = () => {
       },
     },
     {
-      title: '수량 및 작업자 Bin no',
+      title: '작업정보',
       dataIndex: 'amt',
-      key: 'amtManBigo',
+      key: 'work_info',
       align: 'center',
       width: 140,
       render: (value, record) => {
         return (
           <>
-            <div>{value}</div>
-            <div>{record.man_cd}</div>
-            <div>{record.bigo_1}</div>
+            <div>수량: {value}</div>
+            <div>장비: {record.dev_no}</div>
+            <div>작업자: {record.man_cd}</div>
+            <div>BIN: {record.bigo_1}</div>
           </>
         );
       },
@@ -338,7 +355,6 @@ const TestResult = () => {
       align: 'center',
       width: 80,
       render: (_, record) => {
-        // Popover 안에 수정/삭제 버튼을 배치
         const popoverContent = (
           <div style={{ textAlign: 'center' }}>
             <Button type="link" onClick={() => handleEdit(record)}>
@@ -354,9 +370,7 @@ const TestResult = () => {
           <Popover
             content={popoverContent}
             trigger="click"
-          // 필요하면 placement 등 다른 옵션을 추가
           >
-            {/* (+) 버튼 (아이콘 사용해도 됨) */}
             <Button>+</Button>
           </Popover>
         );
@@ -431,6 +445,16 @@ const TestResult = () => {
             </Form.Item>
 
             <Form.Item
+              label="상위 LOT No"
+              name="lot_no2"
+            >
+              <Input 
+                name="lot_no2"
+                placeholder="상위 LOT No" 
+              />
+            </Form.Item>
+
+            <Form.Item
               label="제품"
               name="jepum_cd"
               rules={[{ required: true, message: '제품을 선택하세요.' }]}
@@ -473,6 +497,16 @@ const TestResult = () => {
                   </Option>
                 ))}
               </Select>
+            </Form.Item>
+            
+            <Form.Item
+              label="장비번호"
+              name="dev_no"
+            >
+              <Input 
+                name="dev_no"
+                placeholder="장비번호" 
+              />
             </Form.Item>
 
             <Form.Item
