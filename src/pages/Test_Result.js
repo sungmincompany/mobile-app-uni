@@ -100,43 +100,28 @@ const TestResult = () => {
     if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
 
-      // 정규식을 사용하여 (필드명)값 형식인지 확인
-      const match = barcodeValue.match(/\((.*?)\)(.*)/);
-      let fieldToUpdate = {};
-      let successMessage = '';
-
-      if (match && match.length === 3) {
-        const key = match[1];
-        const value = match[2];
-
-        if (key === 'dev_no') {
-          fieldToUpdate = { dev_no: value };
-          successMessage = `장비번호가 '${value}' (으)로 설정되었습니다.`;
-        } else if (key === 'bin_no') {
-          fieldToUpdate = { bin_no: value };
-          successMessage = `BIN No가 '${value}' (으)로 설정되었습니다.`;
-        } else if (key === 'lot_no2') {
-          fieldToUpdate = { lot_no2: value };
-          successMessage = `상위 LOT No가 '${value}' (으)로 설정되었습니다.`;
-        } else {
-           // 정의되지 않은 키의 경우 기본으로 lot_no2에 할당
-           fieldToUpdate = { lot_no2: barcodeValue };
-           successMessage = `상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`;
-        }
+      // 스캔된 값에 따라 해당 필드에 값을 세팅
+      if (barcodeValue === '11') {
+        form.setFieldsValue({ dev_no: barcodeValue });
+        message.success(`장비번호가 '${barcodeValue}' (으)로 설정되었습니다.`);
+      } else if (barcodeValue === '13') {
+        form.setFieldsValue({ bin_no: barcodeValue });
+        message.success(`BIN No가 '${barcodeValue}' (으)로 설정되었습니다.`);
       } else {
-        // 괄호 형식이 아닌 경우 기본으로 lot_no2에 할당
-        fieldToUpdate = { lot_no2: barcodeValue };
-        successMessage = `상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`;
+        form.setFieldsValue({ lot_no2: barcodeValue });
+        message.success(`상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`);
       }
 
-      form.setFieldsValue(fieldToUpdate);
-      message.success(successMessage);
-
-      // 스캔 후 입력 필드 초기화 및 포커스
+      // 스캔 후 입력 필드 초기화
+      // setTimeout을 사용하여 Form 값 세팅이 완료된 후 입력 필드를 비웁니다.
       setTimeout(() => {
         form.setFieldsValue({ barcodeScan: '' });
-        barcodeInputRef.current?.focus();
       }, 0);
+      
+      // 다시 스캔할 수 있도록 바코드 입력 필드에 포커스
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
     }
   };
 
@@ -401,7 +386,7 @@ const TestResult = () => {
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
            {/* --- 바코드 스캔 영역 --- */}
-           <Form.Item label="바코드 스캔">
+           <Form.Item label="자동 포커스">
              <Row gutter={8} align="middle" wrap={false}>
                <Col flex="auto">
                  <Input
