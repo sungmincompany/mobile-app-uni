@@ -33,35 +33,11 @@ const TestResult = () => {
   const v_db = '16_UR';   // 예시
 
   // --- 바코드 스캔 관련 상태 및 Ref 추가 ---
-  const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 바코드 스캔 ON/OFF 상태 (초기값 true)
+  const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 자동 포커스 ON/OFF 상태 (초기값 true)
   const barcodeInputRef = useRef(null); // 바코드 입력 필드 Ref
   const [idleCountdown, setIdleCountdown] = useState(5); // 카운트다운 상태
   const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
   const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
-
-  // --- '두번 터치로 키보드/드롭다운 열기'를 위한 상태 및 핸들러 ---
-  const [readOnlyStates, setReadOnlyStates] = useState({
-    lot_no: true,
-    amt: true,
-    bin_no: true,
-    man_cd: true,
-    jepum_cd: true, // 제품 선택 필드 추가
-  });
-  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false); // 제품 드롭다운 상태 추가
-
-
-  const handleInputFocus = (e) => {
-    const { name } = e.target;
-    // 해당 필드의 readOnly 상태를 false로 변경하여 편집 가능하게 만듭니다.
-    // 첫 포커스에서는 키보드가 올라오지 않고, 두 번째 터치(포커스)부터 키보드가 나타납니다.
-    setReadOnlyStates(prev => ({ ...prev, [name]: false }));
-  };
-
-  const handleInputBlur = (e) => {
-    const { name } = e.target;
-    // 포커스가 해제되면 다시 readOnly 상태로 변경합니다.
-    setReadOnlyStates(prev => ({ ...prev, [name]: true }));
-  };
 
 
   // --- 유휴 상태 감지 및 자동 포커스 로직 ---
@@ -117,23 +93,12 @@ const TestResult = () => {
   // --- 바코드 스캔 처리 핸들러 (내용은 실제 로직에 맞게 구현 필요) ---
   const handleBarcodeScan = (e) => {
     const barcodeValue = e.target.value;
-    if (barcodeValue) { // barcodeScanOn 조건 제거
+    if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
-      // ===========================================
-      // 여기에 바코드 값 처리 로직을 구현하세요.
-      // 예시: 바코드 값을 파싱하여 Form 필드 자동 채우기
-      // try {
-      //   const { lot_no, jepum_cd } = parseBarcode(barcodeValue); // 바코드 파싱 함수 (별도 구현 필요)
-      //   form.setFieldsValue({ lot_no, jepum_cd });
-      //   message.success('바코드 정보가 적용되었습니다.');
-      // } catch (error) {
-      //   message.error('바코드 처리 중 오류가 발생했습니다.');
-      //   console.error("바코드 처리 오류:", error);
-      // }
-      // ===========================================
-
-      // 스캔 후 입력 필드 초기화 (선택 사항)
-      form.setFieldsValue({ barcodeScan: '' }); // 입력 필드 비우기
+      // 여기에 바코드 값 처리 로직 구현
+      
+      // 스캔 후 입력 필드 초기화
+      form.setFieldsValue({ barcodeScan: '' });
     }
   };
 
@@ -391,34 +356,34 @@ const TestResult = () => {
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
-           {/* --- 바코드 스캔 영역 --- */}
+           {/* --- 제어 스위치 영역 --- */}
            <Form.Item label="자동 포커스">
              <Space>
                <Input
-                 ref={barcodeInputRef} // Ref 연결
+                 ref={barcodeInputRef}
                  placeholder="바코드를 스캔하세요"
-                 name="barcodeScan" // name 추가 (Form 관리 목적)
-                 onPressEnter={handleBarcodeScan} // Enter 키 입력 시 스캔 처리
+                 name="barcodeScan"
+                 onPressEnter={handleBarcodeScan}
                />
                <Switch
                  checkedChildren="ON"
                  unCheckedChildren="OFF"
                  checked={barcodeScanOn}
-                 onChange={setBarcodeScanOn} // 스위치 상태 변경
+                 onChange={setBarcodeScanOn}
                />
-                {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold' }}>({idleCountdown}초)</span>}
+               {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold' }}>({idleCountdown}초)</span>}
              </Space>
            </Form.Item>
+
            {/* --- 기존 Form 내용 --- */}
           <Form
             form={form}
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 1 , work_dt: dayjs() }} // 초기 수량 및 날짜 값 설정
+            initialValues={{ amt: 1 , work_dt: dayjs() }}
             style={{ maxWidth: 600 }}
           >
-            {/* Form의 name과 Input의 name 이 중복되지 않도록 주의 */}
             <Form.Item name="barcodeScan" hidden><Input /></Form.Item>
 
             <Form.Item
@@ -441,9 +406,6 @@ const TestResult = () => {
               <Input 
                 name="lot_no"
                 placeholder="LOT No" 
-                readOnly={readOnlyStates.lot_no}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
@@ -456,29 +418,6 @@ const TestResult = () => {
                 showSearch
                 placeholder="제품 검색"
                 optionFilterProp="children"
-                // --- 드롭다운 제어 로직 추가 ---
-                open={isProductDropdownOpen}
-                onFocus={() => {
-                  if (readOnlyStates.jepum_cd) {
-                    setReadOnlyStates(prev => ({ ...prev, jepum_cd: false }));
-                  } else {
-                    setIsProductDropdownOpen(true);
-                  }
-                }}
-                onSearch={(value) => {
-                  if (value && !isProductDropdownOpen) {
-                    setIsProductDropdownOpen(true);
-                  }
-                }}
-                onBlur={() => {
-                  setIsProductDropdownOpen(false);
-                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
-                }}
-                onSelect={() => {
-                  setIsProductDropdownOpen(false);
-                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
-                }}
-                // ---------------------------------
                 filterOption={(input, option) => {
                   const label = (option?.children ?? '').toString().toLowerCase();
                   return label.includes(input.toLowerCase());
@@ -502,14 +441,11 @@ const TestResult = () => {
                   <InputNumber
                     name="amt"
                     min={1}
-                    value={amt} // 상태 값 바인딩
-                    readOnly={readOnlyStates.amt}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    onChange={(value) => { // 상태 업데이트 핸들러
-                      const val = value || 1; // null이나 0일 경우 1로 처리
+                    value={amt}
+                    onChange={(value) => {
+                      const val = value || 1;
                       setAmt(val);
-                      form.setFieldsValue({ amt: val }); // Form 필드 값도 업데이트
+                      form.setFieldsValue({ amt: val });
                     }}
                     style={{ width: '100%' }}
                   />
@@ -531,9 +467,6 @@ const TestResult = () => {
               <Input 
                 name="bin_no"
                 placeholder="BIN No" 
-                readOnly={readOnlyStates.bin_no}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
@@ -545,9 +478,6 @@ const TestResult = () => {
               <Input 
                 name="man_cd"
                 placeholder="작업자명" 
-                readOnly={readOnlyStates.man_cd}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </Form.Item>
 
@@ -560,7 +490,6 @@ const TestResult = () => {
                  setEditingRecord(null); // 수정 상태 초기화 추가
                  setAmt(1); // 수량 초기화 추가
                  form.setFieldsValue({ work_dt: dayjs() }); // 작업일자 오늘로 재설정
-                 // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
                  if (barcodeScanOn && barcodeInputRef.current) {
                    barcodeInputRef.current.focus();
                  }
