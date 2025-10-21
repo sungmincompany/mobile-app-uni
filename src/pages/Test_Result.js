@@ -39,6 +39,31 @@ const TestResult = () => {
   const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
   const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
 
+  // --- '두번 터치로 키보드/드롭다운 열기'를 위한 상태 및 핸들러 ---
+  const [readOnlyStates, setReadOnlyStates] = useState({
+    lot_no: true,
+    amt: true,
+    bin_no: true,
+    man_cd: true,
+    jepum_cd: true, // 제품 선택 필드 추가
+  });
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false); // 제품 드롭다운 상태 추가
+
+
+  const handleInputFocus = (e) => {
+    const { name } = e.target;
+    // 해당 필드의 readOnly 상태를 false로 변경하여 편집 가능하게 만듭니다.
+    // 첫 포커스에서는 키보드가 올라오지 않고, 두 번째 터치(포커스)부터 키보드가 나타납니다.
+    setReadOnlyStates(prev => ({ ...prev, [name]: false }));
+  };
+
+  const handleInputBlur = (e) => {
+    const { name } = e.target;
+    // 포커스가 해제되면 다시 readOnly 상태로 변경합니다.
+    setReadOnlyStates(prev => ({ ...prev, [name]: true }));
+  };
+
+
   // --- 유휴 상태 감지 및 자동 포커스 로직 ---
   useEffect(() => {
     // 타이머를 리셋하는 함수
@@ -367,7 +392,7 @@ const TestResult = () => {
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
            {/* --- 바코드 스캔 영역 --- */}
-           <Form.Item label="바코드 스캔">
+           <Form.Item label="자동 포커스">
              <Space>
                <Input
                  ref={barcodeInputRef} // Ref 연결
@@ -413,7 +438,13 @@ const TestResult = () => {
               name="lot_no"
               rules={[{ required: true, message: 'LOT No를 입력하세요.' }]}
             >
-              <Input placeholder="LOT No" />
+              <Input 
+                name="lot_no"
+                placeholder="LOT No" 
+                readOnly={readOnlyStates.lot_no}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              />
             </Form.Item>
 
             <Form.Item
@@ -425,6 +456,29 @@ const TestResult = () => {
                 showSearch
                 placeholder="제품 검색"
                 optionFilterProp="children"
+                // --- 드롭다운 제어 로직 추가 ---
+                open={isProductDropdownOpen}
+                onFocus={() => {
+                  if (readOnlyStates.jepum_cd) {
+                    setReadOnlyStates(prev => ({ ...prev, jepum_cd: false }));
+                  } else {
+                    setIsProductDropdownOpen(true);
+                  }
+                }}
+                onSearch={(value) => {
+                  if (value && !isProductDropdownOpen) {
+                    setIsProductDropdownOpen(true);
+                  }
+                }}
+                onBlur={() => {
+                  setIsProductDropdownOpen(false);
+                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
+                }}
+                onSelect={() => {
+                  setIsProductDropdownOpen(false);
+                  setReadOnlyStates(prev => ({ ...prev, jepum_cd: true }));
+                }}
+                // ---------------------------------
                 filterOption={(input, option) => {
                   const label = (option?.children ?? '').toString().toLowerCase();
                   return label.includes(input.toLowerCase());
@@ -446,8 +500,12 @@ const TestResult = () => {
               <Row gutter={8}>
                 <Col flex="auto">
                   <InputNumber
+                    name="amt"
                     min={1}
                     value={amt} // 상태 값 바인딩
+                    readOnly={readOnlyStates.amt}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
                     onChange={(value) => { // 상태 업데이트 핸들러
                       const val = value || 1; // null이나 0일 경우 1로 처리
                       setAmt(val);
@@ -470,7 +528,13 @@ const TestResult = () => {
               name="bin_no"
               rules={[{ required: true, message: 'BIN No를 입력하세요.' }]}
             >
-              <Input placeholder="BIN No" />
+              <Input 
+                name="bin_no"
+                placeholder="BIN No" 
+                readOnly={readOnlyStates.bin_no}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              />
             </Form.Item>
 
             <Form.Item
@@ -478,7 +542,13 @@ const TestResult = () => {
               name="man_cd"
               rules={[{ required: true, message: '작업자코드를 입력하세요.' }]}
             >
-              <Input placeholder="작업자명" />
+              <Input 
+                name="man_cd"
+                placeholder="작업자명" 
+                readOnly={readOnlyStates.man_cd}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+              />
             </Form.Item>
 
             <Form.Item>
