@@ -100,14 +100,30 @@ const TestResult = () => {
     if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
 
-      // 스캔된 값에 따라 해당 필드에 값을 세팅
-      if (barcodeValue === '11') {
-        form.setFieldsValue({ dev_no: barcodeValue });
-        message.success(`장비번호가 '${barcodeValue}' (으)로 설정되었습니다.`);
-      } else if (barcodeValue === '13') {
-        form.setFieldsValue({ bin_no: barcodeValue });
-        message.success(`BIN No가 '${barcodeValue}' (으)로 설정되었습니다.`);
+      // 정규식을 사용하여 값과 필드 키를 추출합니다.
+      // 예: "LOTA-123(lot_no2)" -> match[1]="LOTA-123", match[2]="lot_no2"
+      const regex = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
+      const match = barcodeValue.match(regex);
+
+      // 메시지 표시에 사용할 필드 이름 맵
+      const fieldNames = {
+        lot_no2: '상위 LOT No',
+        dev_no: '장비번호',
+        bin_no: 'BIN No',
+      };
+
+      if (match) {
+        // 괄호 안의 키와 일치하는 경우
+        const valueToSet = match[1]; // 괄호 앞의 실제 값
+        const fieldToSet = match[2]; // 괄호 안의 필드 키 (lot_no2, dev_no, bin_no)
+        const fieldName = fieldNames[fieldToSet]; // 메시지용 한글 필드명
+
+        // 동적 키를 사용하여 해당 Form 필드에 값을 설정
+        form.setFieldsValue({ [fieldToSet]: valueToSet });
+        message.success(`${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`);
+
       } else {
+        // 일치하는 패턴이 없는 경우 (기존 로직: 기본으로 lot_no2에 설정)
         form.setFieldsValue({ lot_no2: barcodeValue });
         message.success(`상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`);
       }
@@ -115,7 +131,7 @@ const TestResult = () => {
       // 스캔 후 입력 필드 초기화
       // setTimeout을 사용하여 Form 값 세팅이 완료된 후 입력 필드를 비웁니다.
       setTimeout(() => {
-        form.setFieldsValue({ barcodeScan: '' });
+        e.target.value = '';
       }, 0);
       
       // 다시 스캔할 수 있도록 바코드 입력 필드에 포커스
@@ -386,13 +402,12 @@ const TestResult = () => {
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
            {/* --- 바코드 스캔 영역 --- */}
-           <Form.Item label="자동 포커스">
+           <Form.Item label="바코드 스캔">
              <Row gutter={8} align="middle" wrap={false}>
                <Col flex="auto">
                  <Input
                    ref={barcodeInputRef}
                    placeholder="바코드를 스캔하세요"
-                   name="barcodeScan"
                    onPressEnter={handleBarcodeScan}
                  />
                </Col>
@@ -418,8 +433,6 @@ const TestResult = () => {
             initialValues={{ amt: 1 , work_dt: dayjs() }} // 초기 수량 및 날짜 값 설정
             style={{ maxWidth: 600 }}
           >
-            {/* Form의 name과 Input의 name 이 중복되지 않도록 주의 */}
-            <Form.Item name="barcodeScan" hidden><Input /></Form.Item>
 
             <Form.Item
               label="작업일자"
