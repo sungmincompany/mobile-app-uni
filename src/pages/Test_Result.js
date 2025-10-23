@@ -411,7 +411,7 @@ const TestResult = () => {
           fetchTestResults(fromDt, toDt);
           form.resetFields();
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); // 📌 초기화 시 기본값 재설정
-          setActiveTab('2');
+          // setActiveTab('2'); 연속등록을 하기 위한 주석처리
         }
       } else {
         // 수정
