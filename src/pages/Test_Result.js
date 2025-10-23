@@ -103,15 +103,21 @@ const TestResult = () => {
   // --- [수정 2] 바코드 스캔 처리 핸들러 (State 제어 방식) ---
   const handleBarcodeScan = (e) => {
     // e.target.value 대신 state (barcodeInputValue) 에서 값을 가져옴
-    const barcodeValue = barcodeInputValue.trim(); 
-    
+    const barcodeValue = barcodeInputValue.trim();
+
     if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
 
-      // 정규식을 사용하여 값과 필드 키를 추출합니다.
-      // 예: "LOTA-123(lot_no2)" -> match[1]="LOTA-123", match[2]="lot_no2"
-      const regex = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
-      const match = barcodeValue.match(regex);
+      // --- 📌 [추가] "VALUE1+VALUE2(FIELD1+FIELD2)" 형식의 정규식
+      // 예: "4+31(dev_no+bin_no)"
+      const regexPlus = /^(.*?)\+(.*?)\((.*?)\+(.*?)\)$/;
+      
+      // --- 📌 [수정] 기존 정규식 이름 변경 (Single)
+      // 예: "LOTA-123(lot_no2)"
+      const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
+
+      const matchPlus = barcodeValue.match(regexPlus);
+      const matchSingle = barcodeValue.match(regexSingle);
 
       // 메시지 표시에 사용할 필드 이름 맵
       const fieldNames = {
@@ -120,26 +126,53 @@ const TestResult = () => {
         bin_no: 'BIN No',
       };
 
-      if (match) {
+      // --- 📌 [수정] 1. "Plus" 형식 (신규) 먼저 확인
+      if (matchPlus) {
+        const value1 = matchPlus[1]; // 예: "4"
+        const value2 = matchPlus[2]; // 예: "31"
+        const field1 = matchPlus[3]; // 예: "dev_no"
+        const field2 = matchPlus[4]; // 예: "bin_no"
+
+        // 동적으로 두 개의 Form 필드에 값을 설정
+        form.setFieldsValue({
+          [field1]: value1,
+          [field2]: value2,
+        });
+
+        // fieldNames 맵에서 한글 이름 찾기, 없으면 그냥 field key 사용
+        const fieldName1 = fieldNames[field1] || field1;
+        const fieldName2 = fieldNames[field2] || field2;
+
+        message.success(
+          `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
+        );
+      }
+      // --- 📌 [수정] 2. "Single" 형식 (기존) 확인
+      else if (matchSingle) {
         // 괄호 안의 키와 일치하는 경우
-        const valueToSet = match[1]; // 괄호 앞의 실제 값
-        const fieldToSet = match[2]; // 괄호 안의 필드 키 (lot_no2, dev_no, bin_no)
+        const valueToSet = matchSingle[1]; // 괄호 앞의 실제 값
+        const fieldToSet = matchSingle[2]; // 괄호 안의 필드 키 (lot_no2, dev_no, bin_no)
         const fieldName = fieldNames[fieldToSet]; // 메시지용 한글 필드명
 
         // 동적 키를 사용하여 해당 Form 필드에 값을 설정
         form.setFieldsValue({ [fieldToSet]: valueToSet });
-        message.success(`${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`);
-
-      } else {
+        message.success(
+          `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
+        );
+      }
+      // --- 📌 [수정] 3. 일치하는 패턴이 없는 경우 (기존)
+      else {
         // 일치하는 패턴이 없는 경우 (기존 로직: 기본으로 lot_no2에 설정)
         form.setFieldsValue({ lot_no2: barcodeValue });
-        message.success(`상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`);
+        message.success(
+          `상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`
+        );
       }
 
       // DOM(e.target.value)을 직접 조작하는 대신
       // state를 업데이트하여 React가 Input을 비우도록 함
       setBarcodeInputValue('');
-      
+
       // 다시 스캔할 수 있도록 바코드 입력 필드에 포커스
       if (barcodeInputRef.current) {
         barcodeInputRef.current.focus();
