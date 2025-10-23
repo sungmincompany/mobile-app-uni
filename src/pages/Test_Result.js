@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space } from 'antd';
+// AutoComplete를 import에 유지합니다.
+import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete } from 'antd';
 import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
@@ -23,9 +24,6 @@ const TestResult = () => {
   // 등록/수정 구분
   const [editingRecord, setEditingRecord] = useState(null);
   const [activeTab, setActiveTab] = useState('1');
-
-  // 수량(amt) 상태
-  const [amt, setAmt] = useState(1);
 
   // DB 스키마
   const v_db = '16_UR';   // 예시
@@ -287,7 +285,8 @@ const TestResult = () => {
         lot_no2: values.lot_no2, // 상위 LOT No 추가
         dev_no: values.dev_no,   // 장비번호 추가
         jepum_cd: values.jepum_cd,
-        amt: values.amt,         // 수량
+        // 📌 [수정] AutoComplete로 받은 값(문자열일 수 있음)을 숫자로 변환
+        amt: Number(values.amt) || 0, 
         man_cd: values.man_cd,   // 작업자(사번, 코드 등)
         bin_no: values.bin_no,   // bigo_1
         work_dt,
@@ -310,7 +309,7 @@ const TestResult = () => {
           message.success('등록 성공!');
           fetchTestResults(fromDt, toDt);
           form.resetFields();
-          setAmt(1);
+          // [제거됨] setAmt(1); 
           setActiveTab('2');
         }
       } else {
@@ -331,7 +330,7 @@ const TestResult = () => {
           fetchTestResults(fromDt, toDt);
           form.resetFields();
           setEditingRecord(null);
-          setAmt(1);
+          // [제거됨] setAmt(1); 
           setActiveTab('2');
         }
       }
@@ -348,7 +347,7 @@ const TestResult = () => {
   // 5) 수정/삭제
   const handleEdit = (record) => {
     setEditingRecord(record);
-    setAmt(record.amt);
+    // [제거됨] setAmt(record.amt);
 
     let workDtObj = null;
     if (record.work_dt && record.work_dt.length === 8) {
@@ -396,20 +395,9 @@ const TestResult = () => {
     });
   };
 
-  // 6) 수량 + / - 버튼
-  const handleIncrease = () => {
-    // form.getFieldValue('amt') 대신 amt state를 사용
-    const currentAmt = amt || 0;
-    setAmt(currentAmt + 1);
-    form.setFieldsValue({ amt: currentAmt + 1 });
-  };
-  const handleDecrease = () => {
-    if (amt > 1) {
-      const currentAmt = amt;
-      setAmt(currentAmt - 1);
-      form.setFieldsValue({ amt: currentAmt - 1 });
-    }
-  };
+  // [제거됨] 수량 + / - 버튼 핸들러 
+  // const handleIncrease = () => { ... };
+  // const handleDecrease = () => { ... };
 
   // 7) 테이블 컬럼
   const columns = [
@@ -549,7 +537,7 @@ const TestResult = () => {
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 1 , work_dt: dayjs() }} // 초기 수량 및 날짜 값 설정
+            initialValues={{ amt: 20500 , work_dt: dayjs() }} // 📌[확인] 초기 수량 20500 설정
             style={{ maxWidth: 600 }}
           >
             {/* 바코드 스캔 Input이 Form의 상태와 분리되었으므로
@@ -650,35 +638,50 @@ const TestResult = () => {
               />
             </Form.Item>
 
+            {/* --- 📌 [수정] 수량 필드 (AutoComplete) --- */}
             <Form.Item
               label="수량"
               name="amt"
-              rules={[{ required: true, message: '수량을 입력하세요.' }]}
+              rules={[
+                { required: true, message: '수량을 입력하거나 선택하세요.' },
+                { // 📌[추가] 입력된 값이 1 이상의 숫자인지 검증
+                  validator: (_, value) => {
+                    const num = Number(value);
+                    if (!value) { // 값이 비어있으면 required 룰이 처리
+                      return Promise.resolve();
+                    }
+                    if (isNaN(num)) {
+                      return Promise.reject(new Error('수량은 숫자여야 합니다.'));
+                    }
+                    if (num < 1) {
+                      return Promise.reject(new Error('수량은 1 이상이어야 합니다.'));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
             >
-              <Row gutter={8}>
-                <Col flex="auto">
-                  <InputNumber
-                    name="amt"
-                    min={1}
-                    value={amt} // 상태 값 바인딩
-                    onChange={(value) => { // 상태 업데이트 핸들러
-                      const val = value || 1; // null이나 0일 경우 1로 처리
-                      setAmt(val);
-                      form.setFieldsValue({ amt: val }); // Form 필드 값도 업데이트
-                    }}
-                    style={{ width: '100%' }}
-                    // --- 📌 [추가 6] 가상키보드 제어 (숫자) ---
-                    inputMode={isVirtualKeyboardOn ? 'numeric' : 'none'}
-                  />
-                </Col>
-                <Col>
-                  <Button onClick={handleIncrease}>+</Button>
-                  <Button onClick={handleDecrease} style={{ marginLeft: 4 }}>
-                    -
-                  </Button>
-                </Col>
-              </Row>
+              <AutoComplete
+                options={[
+                  // AutoComplete 옵션은 value를 문자열로 주는 것이 좋습니다.
+                  { value: '3050' }, 
+                  { value: '20500' },
+                ]}
+                filterOption={(inputValue, option) =>
+                  option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                }
+              >
+                {/* AutoComplete의 자식으로 Input을 넣어 inputMode를 제어합니다. */}
+                <Input 
+                  placeholder="수량을 입력하거나 선택하세요"
+                  inputMode={isVirtualKeyboardOn ? 'numeric' : 'none'}
+                  // --- 📌 [추가] 포커스 시 전체 선택 ---
+                  onFocus={(e) => e.target.select()}
+                />
+              </AutoComplete>
             </Form.Item>
+            {/* --- 📌 [수정] 끝 --- */}
+
 
             <Form.Item
               label="BIN No"
@@ -713,7 +716,7 @@ const TestResult = () => {
               <Button onClick={() => {
                   form.resetFields(); // 모든 필드 초기화
                   setEditingRecord(null); // 수정 상태 초기화 추가
-                  setAmt(1); // 수량 초기화 추가
+                  // [제거됨] setAmt(1); 
                   form.setFieldsValue({ work_dt: dayjs() }); // 작업일자 오늘로 재설정
                   
                   // --- [수정 4] 초기화 시 바코드 state도 비우기 ---
