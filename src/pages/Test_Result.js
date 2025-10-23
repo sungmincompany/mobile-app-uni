@@ -99,111 +99,105 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- [수정 2] 바코드 스캔 처리 핸들러 (State 제어 방식) ---
-  // --- 📌 [수정] async 추가 ---
-  const handleBarcodeScan = async (e) => {
-    // e.target.value 대신 state (barcodeInputValue) 에서 값을 가져옴
+  // --- [수정 2] 바코드 스캔 처리 핸들러 (API 우선 호출 방식) ---
+  const handleBarcodeScan = async (e) => { 
     const barcodeValue = barcodeInputValue.trim();
 
     if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
 
-      // --- 📌 [추가] "VALUE1+VALUE2(FIELD1+FIELD2)" 형식의 정규식
-      // 예: "4+31(dev_no+bin_no)"
       const regexPlus = /^(.*?)\+(.*?)\((.*?)\+(.*?)\)$/;
-
-      // --- 📌 [수정] 기존 정규식 이름 변경 (Single)
-      // 예: "LOTA-123(lot_no2)"
       const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
 
       const matchPlus = barcodeValue.match(regexPlus);
       const matchSingle = barcodeValue.match(regexSingle);
 
-      // 메시지 표시에 사용할 필드 이름 맵
       const fieldNames = {
         lot_no2: '상위 LOT No',
         dev_no: '장비번호',
         bin_no: 'BIN No',
       };
 
-      // --- 📌 [수정] 1. "Plus" 형식 (신규) 먼저 확인
+      // --- 📌 [수정] 1. "Plus" 형식 확인
       if (matchPlus) {
-        const value1 = matchPlus[1]; // 예: "4"
-        const value2 = matchPlus[2]; // 예: "31"
+        let value1 = matchPlus[1]; // 예: "4"
+        let value2 = matchPlus[2]; // 예: "31"
         const field1 = matchPlus[3]; // 예: "dev_no"
         const field2 = matchPlus[4]; // 예: "bin_no"
 
-        // 동적으로 두 개의 Form 필드에 값을 설정
+        const fieldName1 = fieldNames[field1] || field1;
+        const fieldName2 = fieldNames[field2] || field2;
+
+        // 📌 [수정] lot_no2가 포함된 경우, API를 먼저 호출하여 값을 확정
+        if (field1 === 'lot_no2') {
+          // fetch 함수가 제품/lot_no2 메시지 처리
+          value1 = await fetchProductInfoByLotNo2(value1); // 📌 value1 덮어쓰기
+          message.success(`${fieldName2} '${value2}' (으)로 설정되었습니다.`);
+        } else if (field2 === 'lot_no2') {
+          // fetch 함수가 제품/lot_no2 메시지 처리
+          value2 = await fetchProductInfoByLotNo2(value2); // 📌 value2 덮어쓰기
+          message.success(`${fieldName1} '${value1}' (으)로 설정되었습니다.`);
+        } else {
+          // lot_no2가 없는 경우
+          message.success(
+             `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
+           );
+        }
+        
+        // 📌 확정된 값으로 폼 *한 번에* 설정
         form.setFieldsValue({
           [field1]: value1,
           [field2]: value2,
         });
 
-        // fieldNames 맵에서 한글 이름 찾기, 없으면 그냥 field key 사용
-        const fieldName1 = fieldNames[field1] || field1;
-        const fieldName2 = fieldNames[field2] || field2;
-
-        message.success(
-          `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
-        );
-
-        // --- 📌 [추가] 만약 스캔한 필드 중 lot_no2가 있다면 제품 정보 조회 ---
-        if (field1 === 'lot_no2') {
-          await fetchProductInfoByLotNo2(value1);
-        } else if (field2 === 'lot_no2') {
-          await fetchProductInfoByLotNo2(value2);
-        }
-
       }
-      // --- 📌 [수정] 2. "Single" 형식 (기존) 확인
+      // --- 📌 [수정] 2. "Single" 형식 확인
       else if (matchSingle) {
-        // 괄호 안의 키와 일치하는 경우
-        const valueToSet = matchSingle[1]; // 괄호 앞의 실제 값
-        const fieldToSet = matchSingle[2]; // 괄호 안의 필드 키 (lot_no2, dev_no, bin_no)
-        const fieldName = fieldNames[fieldToSet]; // 메시지용 한글 필드명
+        const valueToSet = matchSingle[1]; 
+        const fieldToSet = matchSingle[2];
+        const fieldName = fieldNames[fieldToSet]; 
 
-        // 동적 키를 사용하여 해당 Form 필드에 값을 설정
-        form.setFieldsValue({ [fieldToSet]: valueToSet });
-        message.success(
-          `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
-        );
-
-        // --- 📌 [추가] 상위 LOT No가 스캔된 경우, 제품 정보 조회 ---
         if (fieldToSet === 'lot_no2') {
-          await fetchProductInfoByLotNo2(valueToSet);
+          // 📌 [수정] API를 먼저 호출하여 최종 값을 받음
+          const finalValue = await fetchProductInfoByLotNo2(valueToSet);
+          // 📌 API가 반환한 최종 값으로 폼 설정
+          form.setFieldsValue({ [fieldToSet]: finalValue }); 
+          // 📌 메시지는 fetchProductInfoByLotNo2 함수 내부에서 처리됨
+          
+        } else {
+          // 📌 lot_no2가 아닌 dev_no, bin_no의 경우
+          form.setFieldsValue({ [fieldToSet]: valueToSet });
+          message.success(
+            `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
+          );
         }
       }
-      // --- 📌 [수정] 3. 일치하는 패턴이 없는 경우 (기존)
+      // --- 📌 [수정] 3. 일치하는 패턴이 없는 경우
       else {
-        // 일치하는 패턴이 없는 경우 (기존 로직: 기본으로 lot_no2에 설정)
-        form.setFieldsValue({ lot_no2: barcodeValue });
-        message.success(
-          `상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`
-        );
-
-        // --- 📌 [추가] 상위 LOT No가 스캔된 경우, 제품 정보 조회 ---
-        await fetchProductInfoByLotNo2(barcodeValue);
+        // 📌 [수정] 기본 lot_no2로 설정하기 전, API 먼저 호출
+        const finalValue = await fetchProductInfoByLotNo2(barcodeValue);
+        
+        // 📌 API가 반환한 최종 값으로 폼 설정
+        form.setFieldsValue({ lot_no2: finalValue });
+        // 📌 메시지는 fetchProductInfoByLotNo2 함수 내부에서 처리됨
       }
 
-      // DOM(e.target.value)을 직접 조작하는 대신
-      // state를 업데이트하여 React가 Input을 비우도록 함
+      // --- 공통 로직 (바코드 입력창 비우기 및 포커스) ---
       setBarcodeInputValue('');
-
-      // 다시 스캔할 수 있도록 바코드 입력 필드에 포커스
       if (barcodeInputRef.current) {
         barcodeInputRef.current.focus();
       }
     }
   };
 
-  // --- 📌 [수정] 상위 LOT No로 제품 정보 및 bigo39/40 조회하는 함수 ---
+  // --- 📌 [수정] 상위 LOT No로 제품 정보 조회, bigo39/40 조합 값을 반환하는 함수 ---
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
-    if (!lotNo2Value) return; // 상위 LOT No 값이 없으면 중단
+    // lotNo2Value: 바코드에서 스캔된 원래 값
+    if (!lotNo2Value) return lotNo2Value; // 📌 스캔된 값 그대로 반환
 
     console.log(`상위 LOT(${lotNo2Value})로 제품 정보 조회를 시작합니다.`);
 
     try {
-      // 백엔드 엔드포인트 호출
       const res = await fetch(
         `/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`
       );
@@ -214,13 +208,11 @@ const TestResult = () => {
 
       const data = await res.json();
 
-      // 백엔드 응답은 배열 형태 (TOP 1 이므로 0 또는 1개)
       if (data && data.length > 0) {
         const product = data[0]; // { jepum_cd, jepum_nm, bigo39, bigo40 }
 
-        // 1. 기존 로직: 제품 코드 설정
+        // 1. 제품 코드 설정 (이 로직은 유지)
         if (product.jepum_cd) {
-          // Form의 'jepum_cd' 필드 값을 업데이트
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
           message.success(
             `제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`
@@ -231,29 +223,36 @@ const TestResult = () => {
           );
         }
 
-        // 2. 📌 [요청 사항] bigo39, bigo40 값을 조합하여 상위 LOT No (lot_no2) 필드에 설정
-        //    (product.bigo39 또는 product.bigo40이 null, undefined, "" (빈 문자열)이 아닌지 확인)
+        // 2. 📌 [요청 사항] bigo39, bigo40 값을 조합하여 *반환*
+        //    (두 값이 모두 존재하는지 확인)
         if (product.bigo39 && product.bigo40) {
           const combinedLotNo2 = `${product.bigo39}-${product.bigo40}`;
 
-          // Form의 'lot_no2' 필드 값을 새 조합 값으로 덮어쓰기
-          form.setFieldsValue({ lot_no2: combinedLotNo2 });
-
-          // 사용자에게 피드백
+          // 📌 사용자에게 어떤 값으로 설정되는지 알려줌
           message.info(
             `상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`
           );
+
+          // 📌 조합된 값을 반환
+          return combinedLotNo2;
         }
-        // --- [추가된 로직] 끝 ---
+
+        // --- bigo 조합이 없는 경우 ---
+        message.success(
+          `상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`
+        );
+        return lotNo2Value; // 📌 원래 스캔 값 반환
 
       } else {
         message.warning(
           `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
         );
+        return lotNo2Value; // 📌 정보가 없어도 원래 스캔 값 반환
       }
     } catch (err) {
       console.error('fetchProductInfoByLotNo2 에러:', err);
       message.error('제품 정보 조회 중 오류가 발생했습니다.');
+      return lotNo2Value; // 📌 에러 시에도 원래 스캔 값 반환
     }
   };
 
