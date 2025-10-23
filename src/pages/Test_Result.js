@@ -32,6 +32,9 @@ const TestResult = () => {
   // DB 스키마
   const v_db = '16_UR';   // 예시
 
+  // --- 📌 [추가 1] 가상 키보드 ON/OFF 상태 (기본값 false: OFF) ---
+  const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false); 
+
   // --- 바코드 스캔 관련 상태 및 Ref 추가 ---
   const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 바코드 스캔 ON/OFF 상태 (초기값 true)
   const barcodeInputRef = useRef(null); // 바코드 입력 필드 Ref
@@ -39,7 +42,7 @@ const TestResult = () => {
   const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
   const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
 
-  // --- 📌 [수정 1] 바코드 Input 값을 제어하기 위한 state ---
+  // --- [수정 1] 바코드 Input 값을 제어하기 위한 state ---
   const [barcodeInputValue, setBarcodeInputValue] = useState('');
 
   // --- '두번 터치로 드롭다운 열기'를 위한 상태 (제품 선택 필드 전용) ---
@@ -97,7 +100,7 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- 📌 [수정 2] 바코드 스캔 처리 핸들러 (State 제어 방식) ---
+  // --- [수정 2] 바코드 스캔 처리 핸들러 (State 제어 방식) ---
   const handleBarcodeScan = (e) => {
     // e.target.value 대신 state (barcodeInputValue) 에서 값을 가져옴
     const barcodeValue = barcodeInputValue.trim(); 
@@ -403,7 +406,21 @@ const TestResult = () => {
   // 8) 화면 렌더링
   return (
     <div style={{ padding: 16 }}>
-      <h2>TEST 공정 결과조회</h2>
+      {/* --- 📌 [수정 1] 제목과 가상키보드 토글 영역 --- */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2>TEST 공정 결과조회</h2>
+        <Space>
+          <span style={{ fontSize: '0.9em', color: '#555' }}>가상키보드</span>
+          <Switch
+            checkedChildren="ON"
+            unCheckedChildren="OFF"
+            checked={isVirtualKeyboardOn}
+            onChange={setIsVirtualKeyboardOn}
+          />
+        </Space>
+      </div>
+      {/* --- [수정 1] 끝 --- */}
+
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
@@ -415,9 +432,11 @@ const TestResult = () => {
                     ref={barcodeInputRef}
                     placeholder="바코드를 스캔하세요"
                     onPressEnter={handleBarcodeScan}
-                    // --- 📌 [수정 3] Input을 state와 연결 ---
+                    // --- [수정 3] Input을 state와 연결 ---
                     value={barcodeInputValue}
                     onChange={(e) => setBarcodeInputValue(e.target.value)}
+                    // --- 📌 [추가 2] 가상키보드 제어 ---
+                    inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
                   />
                 </Col>
                 <Col flex="none">
@@ -466,6 +485,8 @@ const TestResult = () => {
               <Input 
                 name="lot_no"
                 placeholder="LOT No" 
+                // --- 📌 [추가 3] 가상키보드 제어 ---
+                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
@@ -476,6 +497,8 @@ const TestResult = () => {
               <Input 
                 name="lot_no2"
                 placeholder="상위 LOT No" 
+                // --- 📌 [추가 4] 가상키보드 제어 ---
+                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
@@ -531,6 +554,8 @@ const TestResult = () => {
               <Input 
                 name="dev_no"
                 placeholder="장비번호" 
+                // --- 📌 [추가 5] 가상키보드 제어 ---
+                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
@@ -551,6 +576,8 @@ const TestResult = () => {
                       form.setFieldsValue({ amt: val }); // Form 필드 값도 업데이트
                     }}
                     style={{ width: '100%' }}
+                    // --- 📌 [추가 6] 가상키보드 제어 (숫자) ---
+                    inputMode={isVirtualKeyboardOn ? 'numeric' : 'none'}
                   />
                 </Col>
                 <Col>
@@ -570,6 +597,8 @@ const TestResult = () => {
               <Input 
                 name="bin_no"
                 placeholder="BIN No" 
+                // --- 📌 [추가 7] 가상키보드 제어 ---
+                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
@@ -581,6 +610,8 @@ const TestResult = () => {
               <Input 
                 name="man_cd"
                 placeholder="작업자명" 
+                // --- 📌 [추가 8] 가상키보드 제어 ---
+                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
@@ -594,7 +625,7 @@ const TestResult = () => {
                   setAmt(1); // 수량 초기화 추가
                   form.setFieldsValue({ work_dt: dayjs() }); // 작업일자 오늘로 재설정
                   
-                  // --- 📌 [수정 4] 초기화 시 바코드 state도 비우기 ---
+                  // --- [수정 4] 초기화 시 바코드 state도 비우기 ---
                   setBarcodeInputValue('');
 
                   // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
