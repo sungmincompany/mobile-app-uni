@@ -11,6 +11,44 @@ const TestResult = () => {
   // 1) Form, State 초기화
   const [form] = Form.useForm();
 
+  // 📌 [신규] '장비번호' 필드의 onBlur(포커스 아웃) 이벤트 핸들러
+  const handleDevNoBlur = () => {
+    // 폼의 현재 값들을 모두 가져옵니다.
+    const allValues = form.getFieldsValue();
+    const newDevNo = allValues.dev_no; // 현재 dev_no 값
+    
+    // onValuesChange와 동일한 형식의 인자를 만들어줍니다.
+    const changedValues = { dev_no: newDevNo }; 
+
+    // 📌 [중요] 수동으로 'handleValuesChange'를 호출합니다.
+    // 수동 입력이 완료되었을 때만 LOT No 생성 로직을 실행합니다.
+    handleValuesChange(changedValues, allValues);
+  };
+
+  // 📌 [신규] Form 값이 변경될 때마다 호출되는 핸들러
+  const handleValuesChange = (changedValues, allValues) => {
+    // 1. 'dev_no' (장비번호) 필드가 변경되었는지 확인
+    if (changedValues.hasOwnProperty('dev_no')) {
+      const newDevNo = changedValues.dev_no;
+
+      // 2. 장비번호가 입력되었고, LOT No가 비어있는 경우에만 자동 생성
+      //    (수정 시 기존 LOT No를 덮어쓰지 않기 위함)
+      if (newDevNo && !allValues.lot_no) {
+
+        // 3. 날짜(MMDD)와 시간(HHMM) 생성
+        const now = dayjs();
+        const mmdd = now.format('MMDD'); // 예: 1023
+        const hhmm = now.format('HHMM'); // 예: 1709
+
+        // 4. 형식에 맞춰 LOT No 조합
+        const generatedLotNo = `${mmdd}-${hhmm}-${newDevNo}`;
+
+        // 5. Form의 'lot_no' 필드에 값 설정
+        form.setFieldsValue({ lot_no: generatedLotNo });
+      }
+    }
+  };
+
   // 제품 목록
   const [productList, setProductList] = useState([]);
 
@@ -61,7 +99,7 @@ const TestResult = () => {
       if (!barcodeScanOn || activeTab !== '1') {
         return;
       }
-
+      
       // 카운트다운 초기화 및 1초마다 감소
       setIdleCountdown(10); // 10초로 변경
       countdownTimerRef.current = setInterval(() => {
@@ -99,8 +137,8 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- [수정 2] 바코드 스캔 처리 핸들러 (API 우선 호출 방식) ---
-  const handleBarcodeScan = async (e) => { 
+  // --- [수정 2] 바코드 스캔 처리 핸들러 (API 우선 호출 + LOT No 생성 수동 호출) ---
+  const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
 
     if (barcodeValue) {
@@ -117,70 +155,86 @@ const TestResult = () => {
         dev_no: '장비번호',
         bin_no: 'BIN No',
       };
+      
+      // 📌 [신규] 폼에 설정할 값들을 임시로 저장할 객체
+      let changedData = {};
+      // 📌 [신규] 폼의 모든 값을 미리 가져오기
+      let allData = form.getFieldsValue(); 
 
-      // --- 📌 [수정] 1. "Plus" 형식 확인
+
+      // --- 📌 1. "Plus" 형식 확인
       if (matchPlus) {
-        let value1 = matchPlus[1]; // 예: "4"
-        let value2 = matchPlus[2]; // 예: "31"
-        const field1 = matchPlus[3]; // 예: "dev_no"
-        const field2 = matchPlus[4]; // 예: "bin_no"
+        let value1 = matchPlus[1]; 
+        let value2 = matchPlus[2]; 
+        const field1 = matchPlus[3];
+        const field2 = matchPlus[4];
 
         const fieldName1 = fieldNames[field1] || field1;
         const fieldName2 = fieldNames[field2] || field2;
 
-        // 📌 [수정] lot_no2가 포함된 경우, API를 먼저 호출하여 값을 확정
         if (field1 === 'lot_no2') {
-          // fetch 함수가 제품/lot_no2 메시지 처리
-          value1 = await fetchProductInfoByLotNo2(value1); // 📌 value1 덮어쓰기
+          value1 = await fetchProductInfoByLotNo2(value1); 
           message.success(`${fieldName2} '${value2}' (으)로 설정되었습니다.`);
         } else if (field2 === 'lot_no2') {
-          // fetch 함수가 제품/lot_no2 메시지 처리
-          value2 = await fetchProductInfoByLotNo2(value2); // 📌 value2 덮어쓰기
+          value2 = await fetchProductInfoByLotNo2(value2);
           message.success(`${fieldName1} '${value1}' (으)로 설정되었습니다.`);
         } else {
-          // lot_no2가 없는 경우
           message.success(
-             `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
-           );
+            `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
+          );
         }
         
-        // 📌 확정된 값으로 폼 *한 번에* 설정
-        form.setFieldsValue({
+        // 📌 [수정] 폼에 바로 설정하기 *전에* 임시 객체에 저장
+        changedData = {
           [field1]: value1,
           [field2]: value2,
-        });
+        };
 
       }
-      // --- 📌 [수정] 2. "Single" 형식 확인
+      // --- 📌 2. "Single" 형식 확인
       else if (matchSingle) {
-        const valueToSet = matchSingle[1]; 
+        const valueToSet = matchSingle[1];
         const fieldToSet = matchSingle[2];
-        const fieldName = fieldNames[fieldToSet]; 
+        const fieldName = fieldNames[fieldToSet];
 
         if (fieldToSet === 'lot_no2') {
-          // 📌 [수정] API를 먼저 호출하여 최종 값을 받음
           const finalValue = await fetchProductInfoByLotNo2(valueToSet);
-          // 📌 API가 반환한 최종 값으로 폼 설정
-          form.setFieldsValue({ [fieldToSet]: finalValue }); 
-          // 📌 메시지는 fetchProductInfoByLotNo2 함수 내부에서 처리됨
-          
+          // 📌 [수정] 임시 객체에 저장
+          changedData = { [fieldToSet]: finalValue };
         } else {
           // 📌 lot_no2가 아닌 dev_no, bin_no의 경우
-          form.setFieldsValue({ [fieldToSet]: valueToSet });
+          // form.setFieldsValue({ [fieldToSet]: valueToSet }); // 📌 아래 공통 로직으로 이동
           message.success(
             `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
           );
+          // 📌 [수정] 임시 객체에 저장
+          changedData = { [fieldToSet]: valueToSet };
         }
       }
-      // --- 📌 [수정] 3. 일치하는 패턴이 없는 경우
+      // --- 📌 3. 일치하는 패턴이 없는 경우
       else {
-        // 📌 [수정] 기본 lot_no2로 설정하기 전, API 먼저 호출
         const finalValue = await fetchProductInfoByLotNo2(barcodeValue);
-        
-        // 📌 API가 반환한 최종 값으로 폼 설정
-        form.setFieldsValue({ lot_no2: finalValue });
-        // 📌 메시지는 fetchProductInfoByLotNo2 함수 내부에서 처리됨
+        // 📌 [수정] 임시 객체에 저장
+        changedData = { lot_no2: finalValue };
       }
+
+      // --- 📌 [신규] 공통 로직 (가장 중요) ---
+      
+      // 1. 폼에 값을 *먼저* 설정합니다.
+      form.setFieldsValue(changedData);
+
+      // 2. 폼의 모든 값을 *다시* 가져옵니다. (방금 설정한 값 포함)
+      allData = form.getFieldsValue(); 
+      
+      // 3. (중요) `dev_no`가 방금 변경된 값에 포함되어 있는지 확인합니다.
+      if (changedData.hasOwnProperty('dev_no')) {
+        // 4. 수동으로 `handleValuesChange` 함수를 호출하여 이벤트를 시뮬레이션합니다.
+        console.log("--- 'dev_no' 스캔 감지. 수동으로 onValuesChange 로직 호출 ---");
+        // 5. (changedValues, allValues) 인자를 전달합니다.
+        handleValuesChange(changedData, allData);
+      }
+      // --- [신규] 공통 로직 끝 ---
+
 
       // --- 공통 로직 (바코드 입력창 비우기 및 포커스) ---
       setBarcodeInputValue('');
@@ -273,7 +327,7 @@ const TestResult = () => {
         const res = await fetch(`/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`);
         if (!res.ok) throw new Error('작업자 목록 조회 오류');
         const data = await res.json();
-
+        
         // data 형식: [{emp_nmk: "홍길동"}, {emp_nmk: "이순신"}]
         // Select의 options prop 형식: [{value: "홍길동", label: "홍길동"}]
         const formattedList = data.map(worker => ({
@@ -317,7 +371,7 @@ const TestResult = () => {
 
   useEffect(() => {
     fetchTestResults(fromDt, toDt);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
   // 4) 등록/수정 처리
@@ -356,7 +410,7 @@ const TestResult = () => {
           message.success('등록 성공!');
           fetchTestResults(fromDt, toDt);
           form.resetFields();
-          // [제거됨] setAmt(1); 
+          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); // 📌 초기화 시 기본값 재설정
           setActiveTab('2');
         }
       } else {
@@ -376,8 +430,8 @@ const TestResult = () => {
           message.success('수정 성공!');
           fetchTestResults(fromDt, toDt);
           form.resetFields();
+          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); // 📌 초기화 시 기본값 재설정
           setEditingRecord(null);
-          // [제거됨] setAmt(1); 
           setActiveTab('2');
         }
       }
@@ -394,7 +448,6 @@ const TestResult = () => {
   // 5) 수정/삭제
   const handleEdit = (record) => {
     setEditingRecord(record);
-    // [제거됨] setAmt(record.amt);
 
     let workDtObj = null;
     if (record.work_dt && record.work_dt.length === 8) {
@@ -441,10 +494,6 @@ const TestResult = () => {
       },
     });
   };
-
-  // [제거됨] 수량 + / - 버튼 핸들러 
-  // const handleIncrease = () => { ... };
-  // const handleDecrease = () => { ... };
 
   // 7) 테이블 컬럼
   const columns = [
@@ -586,6 +635,7 @@ const TestResult = () => {
             onFinishFailed={onFinishFailed}
             initialValues={{ amt: 20500, work_dt: dayjs() }} // 📌[확인] 초기 수량 20500 설정
             style={{ maxWidth: 600 }}
+            // 📌 [제거됨] onValuesChange={handleValuesChange}
           >
             {/* 바코드 스캔 Input이 Form의 상태와 분리되었으므로
               숨겨진 Form.Item은 필요 없습니다.
@@ -672,7 +722,7 @@ const TestResult = () => {
                 ))}
               </Select>
             </Form.Item>
-
+            
             <Form.Item
               label="장비번호"
               name="dev_no"
@@ -682,6 +732,8 @@ const TestResult = () => {
                 placeholder="장비번호"
                 // --- 📌 [추가 5] 가상키보드 제어 ---
                 inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
+                // 📌 [추가] 수동 입력을 완료했을 때(포커스 아웃) 핸들러를 연결합니다.
+                onBlur={handleDevNoBlur}
               />
             </Form.Item>
 
@@ -744,7 +796,7 @@ const TestResult = () => {
               />
             </Form.Item>
 
-            {/* --- 📌 [수정] 작업자 필드를 Select로 변경 --- */}
+            {/* --- 📌 [수정] 작업자 필드를 Select로 변경 (showSearch 제거) --- */}
             <Form.Item
               label="작업자"
               name="man_cd"
@@ -764,19 +816,19 @@ const TestResult = () => {
                 {editingRecord ? '수정하기' : '등록하기'}
               </Button>
               <Button onClick={() => {
-                form.resetFields(); // 모든 필드 초기화
-                setEditingRecord(null); // 수정 상태 초기화 추가
-                // [제거됨] setAmt(1); 
-                form.setFieldsValue({ work_dt: dayjs() }); // 작업일자 오늘로 재설정
+                  form.resetFields(); // 모든 필드 초기화
+                  setEditingRecord(null); // 수정 상태 초기화 추가
+                  // 📌 [수정] 폼 초기화 시 기본값 재설정 (initialValues는 마운트 시에만 적용됨)
+                  form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
+                  
+                  // --- [수정 4] 초기화 시 바코드 state도 비우기 ---
+                  setBarcodeInputValue('');
 
-                // --- [수정 4] 초기화 시 바코드 state도 비우기 ---
-                setBarcodeInputValue('');
-
-                // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
-                if (barcodeScanOn && barcodeInputRef.current) {
-                  barcodeInputRef.current.focus();
-                }
-              }}>초기화</Button>
+                  // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
+                  if (barcodeScanOn && barcodeInputRef.current) {
+                    barcodeInputRef.current.focus();
+                  }
+                }}>초기화</Button>
             </Form.Item>
           </Form>
         </TabPane>
@@ -800,11 +852,11 @@ const TestResult = () => {
                   onChange={(date) => setToDt(date)}
                 />
               </Col>
-              <Col span={8}>
-                <Button type="primary" onClick={() => fetchTestResults(fromDt, toDt)}>
-                  조회
-                </Button>
-              </Col>
+                <Col span={8}>
+                  <Button type="primary" onClick={() => fetchTestResults(fromDt, toDt)}>
+                    조회
+                  </Button>
+                </Col>
             </Row>
 
           </div>
