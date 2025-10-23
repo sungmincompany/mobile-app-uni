@@ -13,6 +13,9 @@ const TestResult = () => {
 
   // 제품 목록
   const [productList, setProductList] = useState([]);
+  
+  // 📌 [추가] 작업자 목록
+  const [workerList, setWorkerList] = useState([]);
 
   // 조회된 Test Result 목록
   const [testResults, setTestResults] = useState([]);
@@ -245,6 +248,33 @@ const TestResult = () => {
       .catch((err) => console.error('제품 목록 에러:', err));
   }, [v_db]);
 
+  // 📌 [추가] 작업자 목록 불러오기 (dept_cd = 'P0503' 고정)
+  useEffect(() => {
+    const fetchWorkerList = async () => {
+      try {
+        // dept_cd='P0503' 하드코딩
+        const res = await fetch(`/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`);
+        if (!res.ok) throw new Error('작업자 목록 조회 오류');
+        const data = await res.json();
+        
+        // data 형식: [{emp_nmk: "홍길동"}, {emp_nmk: "이순신"}]
+        // Select의 options prop 형식: [{value: "홍길동", label: "홍길동"}]
+        const formattedList = data.map(worker => ({
+          value: worker.emp_nmk, // 폼에서 man_cd로 전송될 값
+          label: worker.emp_nmk, // 사용자에게 보여질 이름
+        }));
+        setWorkerList(formattedList);
+
+      } catch (err) {
+        console.error('fetchWorkerList 에러:', err);
+        message.error('작업자 목록을 불러오는 데 실패했습니다.');
+      }
+    };
+
+    fetchWorkerList();
+  }, [v_db]); // v_db가 변경될 때 (거의 없음) 다시 호출
+
+
   // 3) Test Result 조회
   const fetchTestResults = async (startDate, endDate) => {
     try {
@@ -287,7 +317,7 @@ const TestResult = () => {
         jepum_cd: values.jepum_cd,
         // 📌 [수정] AutoComplete로 받은 값(문자열일 수 있음)을 숫자로 변환
         amt: Number(values.amt) || 0, 
-        man_cd: values.man_cd,   // 작업자(사번, 코드 등)
+        man_cd: values.man_cd,   // 📌 작업자 이름(emp_nmk)이 전송됨
         bin_no: values.bin_no,   // bigo_1
         work_dt,
       };
@@ -673,11 +703,12 @@ const TestResult = () => {
               >
                 {/* AutoComplete의 자식으로 Input을 넣어 inputMode를 제어합니다. */}
                 <Input 
-                  placeholder="수량을 입력하거나 선택하세요"
-                  inputMode={isVirtualKeyboardOn ? 'numeric' : 'none'}
-                  // --- 📌 [추가] 포커스 시 전체 선택 ---
-                  onFocus={(e) => e.target.select()}
-                />
+                placeholder="수량을 입력하거나 선택하세요"
+                // 1. 요청사항: 가상키보드 상태와 관계없이 항상 숫자 키패드 사용
+                inputMode="numeric" 
+                // 2. 요청사항: 포커스 시 필드 내용 클리어
+                onFocus={() => form.setFieldsValue({ amt: '' })}
+              />
               </AutoComplete>
             </Form.Item>
             {/* --- 📌 [수정] 끝 --- */}
@@ -696,18 +727,26 @@ const TestResult = () => {
               />
             </Form.Item>
 
+            {/* --- 📌 [수정] 작업자 필드를 Select로 변경 --- */}
             <Form.Item
               label="작업자"
               name="man_cd"
-              rules={[{ required: true, message: '작업자코드를 입력하세요.' }]}
+              rules={[{ required: true, message: '작업자를 선택하세요.' }]}
             >
-              <Input 
-                name="man_cd"
-                placeholder="작업자명" 
-                // --- 📌 [추가 8] 가상키보드 제어 ---
-                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
+              <Select
+                showSearch
+                placeholder="작업자 선택"
+                optionFilterProp="label" // 📌 options prop을 사용하므로 'label'로 검색
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={workerList} // 📌 state에서 옵션 바인딩
+                // 📌 가상키보드가 켜져있을 때 검색 필드에 키보드가 뜨는 것을 방지
+                onSearch={isVirtualKeyboardOn ? (value) => {} : undefined}
               />
             </Form.Item>
+            {/* --- 📌 [수정] 끝 --- */}
+
 
             <Form.Item>
               <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
