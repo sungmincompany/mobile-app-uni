@@ -196,7 +196,7 @@ const TestResult = () => {
     }
   };
 
-  // --- 📌 [추가] 상위 LOT No로 제품 정보 조회하는 함수 ---
+  // --- 📌 [수정] 상위 LOT No로 제품 정보 및 bigo39/40 조회하는 함수 ---
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
     if (!lotNo2Value) return; // 상위 LOT No 값이 없으면 중단
 
@@ -216,7 +216,9 @@ const TestResult = () => {
 
       // 백엔드 응답은 배열 형태 (TOP 1 이므로 0 또는 1개)
       if (data && data.length > 0) {
-        const product = data[0];
+        const product = data[0]; // { jepum_cd, jepum_nm, bigo39, bigo40 }
+
+        // 1. 기존 로직: 제품 코드 설정
         if (product.jepum_cd) {
           // Form의 'jepum_cd' 필드 값을 업데이트
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
@@ -228,6 +230,22 @@ const TestResult = () => {
             `상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`
           );
         }
+
+        // 2. 📌 [요청 사항] bigo39, bigo40 값을 조합하여 상위 LOT No (lot_no2) 필드에 설정
+        //    (product.bigo39 또는 product.bigo40이 null, undefined, "" (빈 문자열)이 아닌지 확인)
+        if (product.bigo39 && product.bigo40) {
+          const combinedLotNo2 = `${product.bigo39}-${product.bigo40}`;
+
+          // Form의 'lot_no2' 필드 값을 새 조합 값으로 덮어쓰기
+          form.setFieldsValue({ lot_no2: combinedLotNo2 });
+
+          // 사용자에게 피드백
+          message.info(
+            `상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`
+          );
+        }
+        // --- [추가된 로직] 끝 ---
+
       } else {
         message.warning(
           `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
