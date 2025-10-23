@@ -1,5 +1,3 @@
-// Test_Result.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space } from 'antd';
 import dayjs from 'dayjs';
@@ -101,7 +99,8 @@ const TestResult = () => {
 
 
   // --- [수정 2] 바코드 스캔 처리 핸들러 (State 제어 방식) ---
-  const handleBarcodeScan = (e) => {
+  // --- 📌 [수정] async 추가 ---
+  const handleBarcodeScan = async (e) => { 
     // e.target.value 대신 state (barcodeInputValue) 에서 값을 가져옴
     const barcodeValue = barcodeInputValue.trim();
 
@@ -111,7 +110,7 @@ const TestResult = () => {
       // --- 📌 [추가] "VALUE1+VALUE2(FIELD1+FIELD2)" 형식의 정규식
       // 예: "4+31(dev_no+bin_no)"
       const regexPlus = /^(.*?)\+(.*?)\((.*?)\+(.*?)\)$/;
-      
+
       // --- 📌 [수정] 기존 정규식 이름 변경 (Single)
       // 예: "LOTA-123(lot_no2)"
       const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
@@ -146,6 +145,14 @@ const TestResult = () => {
         message.success(
           `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
         );
+
+        // --- 📌 [추가] 만약 스캔한 필드 중 lot_no2가 있다면 제품 정보 조회 ---
+        if (field1 === 'lot_no2') {
+          await fetchProductInfoByLotNo2(value1);
+        } else if (field2 === 'lot_no2') {
+          await fetchProductInfoByLotNo2(value2);
+        }
+
       }
       // --- 📌 [수정] 2. "Single" 형식 (기존) 확인
       else if (matchSingle) {
@@ -159,6 +166,11 @@ const TestResult = () => {
         message.success(
           `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
         );
+
+        // --- 📌 [추가] 상위 LOT No가 스캔된 경우, 제품 정보 조회 ---
+        if (fieldToSet === 'lot_no2') {
+          await fetchProductInfoByLotNo2(valueToSet);
+        }
       }
       // --- 📌 [수정] 3. 일치하는 패턴이 없는 경우 (기존)
       else {
@@ -167,6 +179,9 @@ const TestResult = () => {
         message.success(
           `상위 LOT No가 '${barcodeValue}' (으)로 설정되었습니다.`
         );
+
+        // --- 📌 [추가] 상위 LOT No가 스캔된 경우, 제품 정보 조회 ---
+        await fetchProductInfoByLotNo2(barcodeValue);
       }
 
       // DOM(e.target.value)을 직접 조작하는 대신
@@ -177,6 +192,49 @@ const TestResult = () => {
       if (barcodeInputRef.current) {
         barcodeInputRef.current.focus();
       }
+    }
+  };
+
+  // --- 📌 [추가] 상위 LOT No로 제품 정보 조회하는 함수 ---
+  const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
+    if (!lotNo2Value) return; // 상위 LOT No 값이 없으면 중단
+
+    console.log(`상위 LOT(${lotNo2Value})로 제품 정보 조회를 시작합니다.`);
+
+    try {
+      // 백엔드 엔드포인트 호출
+      const res = await fetch(
+        `/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`
+      );
+
+      if (!res.ok) {
+        throw new Error(`서버 응답 오류: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // 백엔드 응답은 배열 형태 (TOP 1 이므로 0 또는 1개)
+      if (data && data.length > 0) {
+        const product = data[0];
+        if (product.jepum_cd) {
+          // Form의 'jepum_cd' 필드 값을 업데이트
+          form.setFieldsValue({ jepum_cd: product.jepum_cd });
+          message.success(
+            `제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`
+          );
+        } else {
+          message.warning(
+            `상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`
+          );
+        }
+      } else {
+        message.warning(
+          `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
+        );
+      }
+    } catch (err) {
+      console.error('fetchProductInfoByLotNo2 에러:', err);
+      message.error('제품 정보 조회 중 오류가 발생했습니다.');
     }
   };
 
