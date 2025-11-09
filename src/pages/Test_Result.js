@@ -4,100 +4,112 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { QRCodeSVG } from 'qrcode.react';
-import { useReactToPrint } from 'react-to-print';
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { Option } = Select;
 
-// [라벨 컴포넌트]
-const LabelToPrint = React.forwardRef(({ data }, ref) => {
+// ------------------------------------------------------------------
+// LabelToPrint 컴포넌트 (일자 제거, 수량 포맷 적용된 버전)
+// ------------------------------------------------------------------
+const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
   const labelStyle = {
     width: '50mm',
     height: '30mm',
-    padding: '2mm',
+    padding: '0', 
     boxSizing: 'border-box',
-    fontFamily: 'Arial, sans-serif',
-    fontSize: '8pt',
+    fontFamily: 'Malgun Gothic, Arial, sans-serif',
+    fontSize: '7pt', 
     lineHeight: 1.2,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    border: '1px dashed #999',
-    overflow: 'hidden',
+    position: 'relative', 
+    border: '1px dashed #999', 
     backgroundColor: 'white',
     color: 'black',
+    overflow: 'hidden', 
   };
 
-  const qrContainerStyle = {
-    flexShrink: 0,
-    width: '24mm',
-    height: '24mm',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: '2mm',
-  };
-
-  const infoStyle = {
-    flexGrow: 1,
-    width: 'calc(100% - 26mm)',
+  const tableStyle = { 
+    width: '100%', 
+    height: '100%', 
+    borderCollapse: 'collapse',
   };
   
-  const tableStyle = { width: '100%', borderCollapse: 'collapse' };
-  const tdStyle = { border: '1px solid #333', padding: '1px 2px', fontSize: '7pt', wordBreak: 'break-all' };
-  const thStyle = { ...tdStyle, textAlign: 'left', width: '30%', backgroundColor: '#eee' };
+  const thStyle = { 
+    border: '1px solid #333', 
+    padding: '0.5mm 1mm', 
+    fontSize: '8pt',      
+    whiteSpace: 'nowrap',   
+    textAlign: 'left', 
+    width: '20%',           
+    backgroundColor: '#eee' 
+  };
+  
+  const tdStyle = { 
+    border: '1px solid #333', 
+    padding: '0.5mm 1mm', 
+    fontSize: '9pt',        
+    wordBreak: 'break-all', 
+    verticalAlign: 'middle', 
+  };
 
-  const displayDate = data.work_dt?.format ? data.work_dt.format('YYYY-MM-DD') : data.work_dt;
+  const qrCellContentStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%', 
+    height: '100%', 
+    padding: '0.5mm', 
+  };
+
+  // 3자리 콤마 포맷 적용
+  const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
 
   return (
-    <div ref={ref} style={labelStyle} className="label-print-container">
-      {/* QR 코드 영역 */}
-      <div style={qrContainerStyle}>
-        <QRCodeSVG
-          value={data.lot_no || 'N/A'}
-          size={85} // 약 24mm
-          style={{ width: '24mm', height: '24mm' }}
-          level="M"
-        />
-      </div>
-      {/* 정보 영역 */}
-      <div style={infoStyle}>
-        <table style={tableStyle}>
-          <tbody>
-            <tr>
-              <th style={thStyle}>LOT</th>
-              <td style={tdStyle}>{data.lot_no}</td>
-            </tr>
-            <tr>
-              <th style={thStyle}>상위</th>
-              <td style={tdStyle}>{data.lot_no2}</td>
-            </tr>
-            <tr>
-              <th style={thStyle}>제품</th>
-              <td style={tdStyle}>{data.jepum_nm}</td>
-            </tr>
-            <tr>
-              <th style={thStyle}>수량</th>
-              <td style={tdStyle}>{data.amt}</td>
-            </tr>
-            {/* 📌 [수정] = 가 빠졌던 오타 수정 */}
-            <tr>
-              <th style={thStyle}>작업</th>
-              <td style={tdStyle}>{data.man_cd}</td>
-            </tr>
-            <tr>
-              <th style={thStyle}>일자</th>
-              <td style={tdStyle}>{displayDate}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div style={labelStyle} className="label-print-container-class">
+      <table style={tableStyle}>
+        <tbody>
+          <tr>
+            <th style={thStyle}>LOT</th>
+            <td style={tdStyle}>{data.lot_no}</td>
+            <td rowSpan="3" style={{ ...tdStyle, width: '35%', padding: '0' }}>
+              <div style={qrCellContentStyle}>
+                <QRCodeSVG
+                  value={data.lot_no || 'N/A'}
+                  size={50} 
+                  style={{ width: '13mm', height: '13mm' }}
+                  level="M"
+                />
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <th style={thStyle}>상위</th>
+            <td style={tdStyle}>{data.lot_no2}</td>
+          </tr>
+          <tr>
+            <th style={thStyle}>제품</th>
+            <td style={tdStyle}>{data.jepum_nm}</td>
+          </tr>
+          <tr>
+            <th style={thStyle}>수량</th>
+            <td style={{...tdStyle, colSpan: 2}} colSpan={2}>{formattedAmt}</td>
+          </tr>
+          <tr>
+            <th style={thStyle}>작업</th>
+            <td style={{...tdStyle, colSpan: 2}} colSpan={2}>{data.man_cd}</td>
+          </tr>
+          {/* 일자 행은 제거됨 */}
+        </tbody>
+      </table>
     </div>
   );
-});
+};
+// ------------------------------------------------------------------
+// (이하 TestResult 컴포넌트)
+// ------------------------------------------------------------------
+
 
 // 컴포넌트 이름 (PascalCase)
 const TestResult = () => {
@@ -120,47 +132,18 @@ const TestResult = () => {
   const [isProductSelectReady, setIsProductSelectReady] = useState(false);
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
-  const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const [printableData, setPrintableData] = useState(null);
   const [modalTitle, setModalTitle] = useState('등록/수정 완료');
   const [openPopoverKey, setOpenPopoverKey] = useState(null);
-  const printComponentRef = useRef(null);
 
-  // react-to-print 훅 설정
-  const handlePrint = useReactToPrint({
-    content: () => printComponentRef.current,
-    pageStyle: `
-      @page {
-        size: 50mm 30mm;
-        margin: 0mm;
-      }
-      @media print {
-        html, body {
-          width: 50mm;
-          height: 30mm;
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-        }
-        .label-print-container {
-          width: 50mm;
-          height: 30mm;
-          margin: 0;
-          padding: 0;
-          border: none !important;
-        }
-      }
-    `,
-    onAfterPrint: () => {
-      console.log('인쇄 작업 완료 또는 취소됨');
-    },
-  });
+  // 브라우저 기본 인쇄 기능 호출
+  const handleSimplePrint = () => {
+    window.print();
+  };
 
   // 모달 닫기 핸들러
   const handleModalClose = () => {
-    setIsPrintModalVisible(false);
-    setPrintableData(null);
-    
+    setPrintableData(null); 
     if (editingRecord) {
       setActiveTab('2');
       setEditingRecord(null); 
@@ -171,31 +154,26 @@ const TestResult = () => {
   const handleRePrint = (record) => {
     const product = productList.find(p => p.jepum_cd === record.jepum_cd);
     const jepum_nm = product ? product.jepum_nm : record.jepum_cd;
-
     let displayDate = record.work_dt;
     if (record.work_dt && record.work_dt.length === 8) {
       displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(4, 6)}-${record.work_dt.slice(6, 8)}`;
     }
-
-    setPrintableData({
+    setModalTitle('라벨 재인쇄');
+    setPrintableData({ 
       lot_no: record.lot_no,
       lot_no2: record.lot_no2,
       jepum_nm: jepum_nm, 
       amt: record.amt,
       man_cd: record.man_cd,
-      work_dt: displayDate, 
+      work_dt: displayDate, // (비록 라벨엔 안 나오지만 데이터는 전달)
     });
-    
-    setModalTitle('라벨 재인쇄');
-    setIsPrintModalVisible(true);
   };
 
   // Popover 열기/닫기 핸들러
   const handlePopoverChange = (visible, key) => {
     setOpenPopoverKey(visible ? key : null);
   };
-
-
+  
   // '장비번호' 필드의 onBlur(포커스 아웃) 이벤트 핸들러
   const handleDevNoBlur = () => {
     const allValues = form.getFieldsValue();
@@ -218,15 +196,12 @@ const TestResult = () => {
     }
   };
 
-
   // --- 유휴 상태 감지 및 자동 포커스 로직 ---
   useEffect(() => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-      if (!barcodeScanOn || activeTab !== '1') {
-        return;
-      }
+      if (!barcodeScanOn || activeTab !== '1') return;
       setIdleCountdown(10); 
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown(prev => Math.max(0, prev - 1));
@@ -252,32 +227,22 @@ const TestResult = () => {
     }
   }, [barcodeScanOn, activeTab]);
 
-
   // --- 바코드 스캔 처리 핸들러 ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
     if (barcodeValue) {
-      console.log('스캔된 바코드:', barcodeValue);
       const regexPlus = /^(.*?)\+(.*?)\((.*?)\+(.*?)\)$/;
       const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
       const matchPlus = barcodeValue.match(regexPlus);
       const matchSingle = barcodeValue.match(regexSingle);
-      const fieldNames = {
-        lot_no2: '상위 LOT No',
-        dev_no: '장비번호',
-        bin_no: 'BIN No',
-      };
+      const fieldNames = { lot_no2: '상위 LOT No', dev_no: '장비번호', bin_no: 'BIN No' };
       let changedData = {};
       let allData = form.getFieldsValue(); 
 
       if (matchPlus) {
-        let value1 = matchPlus[1]; 
-        let value2 = matchPlus[2]; 
-        const field1 = matchPlus[3];
-        const field2 = matchPlus[4];
-        const fieldName1 = fieldNames[field1] || field1;
-        const fieldName2 = fieldNames[field2] || field2;
-
+        let value1 = matchPlus[1], value2 = matchPlus[2]; 
+        const field1 = matchPlus[3], field2 = matchPlus[4];
+        const fieldName1 = fieldNames[field1] || field1, fieldName2 = fieldNames[field2] || field2;
         if (field1 === 'lot_no2') {
           value1 = await fetchProductInfoByLotNo2(value1); 
           message.success(`${fieldName2} '${value2}' (으)로 설정되었습니다.`);
@@ -285,27 +250,20 @@ const TestResult = () => {
           value2 = await fetchProductInfoByLotNo2(value2);
           message.success(`${fieldName1} '${value1}' (으)로 설정되었습니다.`);
         } else {
-          message.success(
-            `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
-          );
+          message.success(`${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`);
         }
         changedData = { [field1]: value1, [field2]: value2 };
-      }
-      else if (matchSingle) {
-        const valueToSet = matchSingle[1];
-        const fieldToSet = matchSingle[2];
+      } else if (matchSingle) {
+        const valueToSet = matchSingle[1], fieldToSet = matchSingle[2];
         const fieldName = fieldNames[fieldToSet];
         if (fieldToSet === 'lot_no2') {
           const finalValue = await fetchProductInfoByLotNo2(valueToSet);
           changedData = { [fieldToSet]: finalValue };
         } else {
-          message.success(
-            `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
-          );
+          message.success(`${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`);
           changedData = { [fieldToSet]: valueToSet };
         }
-      }
-      else {
+      } else {
         const finalValue = await fetchProductInfoByLotNo2(barcodeValue);
         changedData = { lot_no2: finalValue };
       }
@@ -313,55 +271,37 @@ const TestResult = () => {
       form.setFieldsValue(changedData);
       allData = form.getFieldsValue(); 
       if (changedData.hasOwnProperty('dev_no')) {
-        console.log("--- 'dev_no' 스캔 감지. 수동으로 onValuesChange 로직 호출 ---");
         handleValuesChange(changedData, allData);
       }
       setBarcodeInputValue('');
-      if (barcodeInputRef.current) {
-        barcodeInputRef.current.focus();
-      }
+      if (barcodeInputRef.current) barcodeInputRef.current.focus();
     }
   };
 
   // --- 상위 LOT No로 제품 정보 조회 ---
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
     if (!lotNo2Value) return lotNo2Value;
-    console.log(`상위 LOT(${lotNo2Value})로 제품 정보 조회를 시작합니다.`);
     try {
-      const res = await fetch(
-        `/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`
-      );
-      if (!res.ok) {
-        throw new Error(`서버 응답 오류: ${res.status}`);
-      }
+      const res = await fetch(`/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`);
+      if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
       const data = await res.json();
       if (data && data.length > 0) {
         const product = data[0]; 
         if (product.jepum_cd) {
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
-          message.success(
-            `제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`
-          );
+          message.success(`제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`);
         } else {
-          message.warning(
-            `상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`
-          );
+          message.warning(`상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`);
         }
         if (product.bigo39 && product.bigo40) {
           const combinedLotNo2 = `${product.bigo39}-${product.bigo40}`;
-          message.info(
-            `상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`
-          );
+          message.info(`상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`);
           return combinedLotNo2;
         }
-        message.success(
-          `상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`
-        );
+        message.success(`상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`);
         return lotNo2Value;
       } else {
-        message.warning(
-          `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
-        );
+        message.warning(`상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`);
         return lotNo2Value;
       }
     } catch (err) {
@@ -370,7 +310,6 @@ const TestResult = () => {
       return lotNo2Value;
     }
   };
-
 
   // 2) 제품 목록 불러오기
   useEffect(() => {
@@ -387,10 +326,7 @@ const TestResult = () => {
         const res = await fetch(`/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`);
         if (!res.ok) throw new Error('작업자 목록 조회 오류');
         const data = await res.json();
-        const formattedList = data.map(worker => ({
-          value: worker.emp_nmk,
-          label: worker.emp_nmk,
-        }));
+        const formattedList = data.map(worker => ({ value: worker.emp_nmk, label: worker.emp_nmk }));
         setWorkerList(formattedList);
       } catch (err) {
         console.error('fetchWorkerList 에러:', err);
@@ -400,21 +336,15 @@ const TestResult = () => {
     fetchWorkerList();
   }, [v_db]); 
 
-
   // 3) Test Result 조회
   const fetchTestResults = async (startDate, endDate) => {
     try {
       const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
       const toParam = endDate ? endDate.format('YYYYMMDD') : '20991231';
-
-      const res = await fetch(
-        `/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`
-      );
+      const res = await fetch(`/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`);
       if (!res.ok) throw new Error('TEST 실적 조회 오류');
       const data = await res.json();
-      data.forEach((item, idx) => {
-        item.key = idx;
-      });
+      data.forEach((item, idx) => { item.key = idx; });
       setTestResults(data);
     } catch (err) {
       console.error('fetchTestResults 에러:', err);
@@ -432,68 +362,44 @@ const TestResult = () => {
     try {
       const work_dt = values.work_dt ? values.work_dt.format('YYYY-MM-DD') : null;
       const bodyPayload = {
-        lot_no: values.lot_no,
-        lot_no2: values.lot_no2,
-        dev_no: values.dev_no,
-        jepum_cd: values.jepum_cd,
-        amt: Number(values.amt) || 0,
-        man_cd: values.man_cd,
-        bin_no: values.bin_no,
-        work_dt,
+        lot_no: values.lot_no, lot_no2: values.lot_no2, dev_no: values.dev_no,
+        jepum_cd: values.jepum_cd, amt: Number(values.amt) || 0, man_cd: values.man_cd,
+        bin_no: values.bin_no, work_dt,
       };
 
       const product = productList.find(p => p.jepum_cd === values.jepum_cd);
       const dataForPrint = {
-        ...values, 
-        work_dt: work_dt, 
+        ...values, work_dt: work_dt, 
         jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
 
-      if (!editingRecord) {
-        // 신규 등록
-        const response = await fetch(
-          `/api/insert/etc/test-result?v_db=${v_db}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyPayload),
-          }
-        );
+      if (!editingRecord) { // 신규 등록
+        const response = await fetch(`/api/insert/etc/test-result?v_db=${v_db}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyPayload),
+        });
         const resData = await response.json();
         if (resData.error) {
           message.error(`등록 실패: ${resData.error}`);
         } else {
           message.success('등록 성공!'); 
           fetchTestResults(fromDt, toDt); 
-          
           setModalTitle('등록 완료'); 
-          setPrintableData(dataForPrint);
-          setIsPrintModalVisible(true);
-
+          setPrintableData(dataForPrint); // 모달 열기
           form.resetFields(); 
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); 
         }
-      } else {
-        // 수정
-        const response = await fetch(
-          `/api/update/etc/test-result?v_db=${v_db}`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyPayload),
-          }
-        );
+      } else { // 수정
+        const response = await fetch(`/api/update/etc/test-result?v_db=${v_db}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyPayload),
+        });
         const resData = await response.json();
         if (resData.error) {
           message.error(`수정 실패: ${resData.error}`);
         } else {
           message.success('수정 성공!');
           fetchTestResults(fromDt, toDt);
-
           setModalTitle('수정 완료');
-          setPrintableData(dataForPrint);
-          setIsPrintModalVisible(true);
-
+          setPrintableData(dataForPrint); // 모달 열기
           form.resetFields(); 
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
         }
@@ -508,34 +414,25 @@ const TestResult = () => {
     message.error('모든 항목을 올바르게 입력해주세요!');
   };
 
-  // 5) 수정/삭제
+  // 5) 수정/삭제 (변경 없음)
   const handleEdit = (record) => {
     setEditingRecord(record);
     let workDtObj = null;
     if (record.work_dt && record.work_dt.length === 8) {
-      const year = record.work_dt.slice(0, 4);
-      const month = record.work_dt.slice(4, 6);
-      const day = record.work_dt.slice(6, 8);
+      const year = record.work_dt.slice(0, 4), month = record.work_dt.slice(4, 6), day = record.work_dt.slice(6, 8);
       workDtObj = dayjs(`${year}-${month}-${day}`, 'YYYY-MM-DD');
     }
     form.setFieldsValue({
-      lot_no: record.lot_no,
-      lot_no2: record.lot_no2,
-      dev_no: record.dev_no,
-      jepum_cd: record.jepum_cd,
-      amt: record.amt,
-      man_cd: record.man_cd,
-      bin_no: record.bigo_1,
-      work_dt: workDtObj,
+      lot_no: record.lot_no, lot_no2: record.lot_no2, dev_no: record.dev_no,
+      jepum_cd: record.jepum_cd, amt: record.amt, man_cd: record.man_cd,
+      bin_no: record.bigo_1, work_dt: workDtObj,
     });
     setActiveTab('1');
   };
 
   const handleDelete = (record) => {
     confirm({
-      title: '해당 실적을 삭제하시겠습니까?',
-      okText: '예',
-      cancelText: '아니오',
+      title: '해당 실적을 삭제하시겠습니까?', okText: '예', cancelText: '아니오',
       onOk: async () => {
         try {
           const url = `/api/delete/etc/test-result?v_db=${v_db}&lot_no=${record.lot_no}`;
@@ -555,94 +452,50 @@ const TestResult = () => {
     });
   };
 
-  // 7) [수정] 테이블 컬럼 (Popover 제어 로직 추가)
+  // 7) 테이블 컬럼 (변경 없음)
   const columns = [
     {
-      title: '작업일자',
-      dataIndex: 'work_dt',
-      key: 'work_dt',
-      align: 'center',
-      width: 100,
-      render: (text) => {
-        if (!text || text.length !== 8) return text;
-        return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
-      },
+      title: '작업일자', dataIndex: 'work_dt', key: 'work_dt', align: 'center', width: 100,
+      render: (text) => (text && text.length === 8) ? `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}` : text,
     },
     {
-      title: 'LOT 정보',
-      dataIndex: 'lot_no',
-      key: 'lot_info',
-      align: 'center',
-      width: 120,
-      render: (value, record) => (
-        <>
-          <div>{value}</div>
-          <div style={{ color: 'gray' }}>{record.lot_no2}</div>
-        </>
-      ),
+      title: 'LOT 정보', dataIndex: 'lot_no', key: 'lot_info', align: 'center', width: 120,
+      render: (value, record) => (<><div>{value}</div><div style={{ color: 'gray' }}>{record.lot_no2}</div></>),
     },
     {
-      title: '제품',
-      dataIndex: 'jepum_cd',
-      key: 'jepum_cd',
-      align: 'center',
-      width: 140,
+      title: '제품', dataIndex: 'jepum_cd', key: 'jepum_cd', align: 'center', width: 140,
       render: (code) => {
         const prod = productList.find((p) => p.jepum_cd === code);
         return prod ? prod.jepum_nm : code;
       },
     },
     {
-      title: '작업정보',
-      dataIndex: 'amt',
-      key: 'work_info',
-      align: 'center',
-      width: 140,
-      render: (value, record) => {
-        return (
-          <>
-            <div>수량: {value}</div>
-            <div>장비: {record.dev_no}</div>
-            <div>작업자: {record.man_cd}</div>
-            <div>BIN: {record.bigo_1}</div>
-          </>
-        );
-      },
+      title: '작업정보', dataIndex: 'amt', key: 'work_info', align: 'center', width: 140,
+      render: (value, record) => (<>
+        <div>수량: {value}</div><div>장비: {record.dev_no}</div>
+        <div>작업자: {record.man_cd}</div><div>BIN: {record.bigo_1}</div>
+      </>),
     },
     {
-      title: '작업',
-      key: 'action',
-      align: 'center',
-      width: 80,
+      title: '작업', key: 'action', align: 'center', width: 80,
       render: (_, record) => {
         const popoverContent = (
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-            <Button type="link" onClick={() => {
-              handleEdit(record);
-              setOpenPopoverKey(null); // Popover 닫기
-            }}>
+            <Button type="link" onClick={() => { handleEdit(record); setOpenPopoverKey(null); }}>
               수정
             </Button>
-            <Button type="link" onClick={() => {
-              handleRePrint(record);
-              setOpenPopoverKey(null); // Popover 닫기
-            }}>
+            <Button type="link" onClick={() => { handleRePrint(record); setOpenPopoverKey(null); }}>
               재인쇄
             </Button>
-            <Button type="link" danger onClick={() => {
-              setOpenPopoverKey(null); // Popover 닫기
-              handleDelete(record);
-            }}>
+            <Button type="link" danger onClick={() => { setOpenPopoverKey(null); handleDelete(record); }}>
               삭제
             </Button>
           </div>
         );
-
         return (
           <Popover
             content={popoverContent}
             trigger="click"
-            // 📌 Popover 상태 제어
             open={openPopoverKey === record.key}
             onOpenChange={(visible) => handlePopoverChange(visible, record.key)}
           >
@@ -655,9 +508,9 @@ const TestResult = () => {
 
   // 8) 화면 렌더링
   return (
-    <div style={{ padding: 16 }}>
-      {/* --- 제목과 가상키보드 토글 영역 --- */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+    <div style={{ padding: 16 }} id="test-result-container">
+      {/* --- 1. 메인 화면 (no-print 유지) --- */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }} className="no-print">
         <h2>TEST 공정 결과조회</h2>
         <Space>
           <span style={{ fontSize: '0.9em', color: '#555' }}>가상키보드</span>
@@ -670,277 +523,168 @@ const TestResult = () => {
         </Space>
       </div>
 
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        {/* 등록 탭 */}
+      {/* --- 2. 탭 (no-print 유지) --- */}
+      <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
+        
+        {/* 📌 [수정] TabPane 내부의 최상위 요소에 'no-print' 클래스 추가 */}
         <TabPane tab="등록" key="1">
-          <Form.Item label="바코드 스캔">
-            <Row gutter={8} align="middle" wrap={false}>
-              <Col flex="auto">
-                <Input
-                  ref={barcodeInputRef}
-                  placeholder="바코드를 스캔하세요"
-                  onPressEnter={handleBarcodeScan}
-                  value={barcodeInputValue}
-                  onChange={(e) => setBarcodeInputValue(e.target.value)}
-                  inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-                />
-              </Col>
-              <Col flex="none">
-                <Space>
-                  <Switch
-                    checkedChildren="ON"
-                    unCheckedChildren="OFF"
-                    checked={barcodeScanOn}
-                    onChange={setBarcodeScanOn}
+          <div className="no-print"> {/* 👈 여기! */}
+            <Form.Item label="바코드 스캔">
+              <Row gutter={8} align="middle" wrap={false}>
+                <Col flex="auto">
+                  <Input
+                    ref={barcodeInputRef}
+                    placeholder="바코드를 스캔하세요"
+                    onPressEnter={handleBarcodeScan}
+                    value={barcodeInputValue}
+                    onChange={(e) => setBarcodeInputValue(e.target.value)}
+                    inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
                   />
-                  {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold', whiteSpace: 'nowrap' }}>({idleCountdown}초)</span>}
-                </Space>
-              </Col>
-            </Row>
-          </Form.Item>
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 20500, work_dt: dayjs() }}
-            style={{ maxWidth: 600 }}
-          >
-            <Form.Item
-              label="작업일자"
-              name="work_dt"
-              rules={[{ required: true, message: '작업일자를 선택하세요.' }]}
-            >
-              <DatePicker
-                placeholder="작업일자"
-                style={{ width: '100%' }}
-                format="YYYY-MM-DD"
-              />
+                </Col>
+                <Col flex="none">
+                  <Space>
+                    <Switch
+                      checkedChildren="ON"
+                      unCheckedChildren="OFF"
+                      checked={barcodeScanOn}
+                      onChange={setBarcodeScanOn}
+                    />
+                    {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold', whiteSpace: 'nowrap' }}>({idleCountdown}초)</span>}
+                  </Space>
+                </Col>
+              </Row>
             </Form.Item>
+            <Form
+              form={form} layout="vertical" onFinish={onFinish} onFinishFailed={onFinishFailed}
+              initialValues={{ amt: 20500, work_dt: dayjs() }} style={{ maxWidth: 600 }}
+            >
+              <Form.Item label="작업일자" name="work_dt" rules={[{ required: true, message: '작업일자를 선택하세요.' }]}>
+                <DatePicker placeholder="작업일자" style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
 
-            <Form.Item
-              label="LOT No"
-              name="lot_no"
-              rules={[{ required: true, message: 'LOT No를 입력하세요.' }]}
-            >
-              <Input
-                name="lot_no"
-                placeholder="LOT No"
-                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-              />
-            </Form.Item>
+              <Form.Item label="LOT No" name="lot_no" rules={[{ required: true, message: 'LOT No를 입력하세요.' }]}>
+                <Input name="lot_no" placeholder="LOT No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+              </Form.Item>
 
-            <Form.Item
-              label="상위 LOT No"
-              name="lot_no2"
-            >
-              <Input
-                name="lot_no2"
-                placeholder="상위 LOT No"
-                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-              />
-            </Form.Item>
+              <Form.Item label="상위 LOT No" name="lot_no2">
+                <Input name="lot_no2" placeholder="상위 LOT No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+              </Form.Item>
 
-            <Form.Item
-              label="제품"
-              name="jepum_cd"
-              rules={[{ required: true, message: '제품을 선택하세요.' }]}
-            >
-              <Select
-                showSearch
-                placeholder="제품 검색"
-                optionFilterProp="children"
-                open={isProductDropdownOpen}
-                onFocus={() => {
-                  if (!isProductSelectReady) {
-                    setIsProductSelectReady(true);
-                  } else {
-                    setIsProductDropdownOpen(true);
-                  }
-                }}
-                onSearch={(value) => {
-                  if (value && !isProductDropdownOpen) {
-                    setIsProductDropdownOpen(true);
-                  }
-                }}
-                onBlur={() => {
-                  setIsProductDropdownOpen(false);
-                  setIsProductSelectReady(false);
-                }}
-                onSelect={() => {
-                  setIsProductDropdownOpen(false);
-                  setIsProductSelectReady(false);
-                }}
-                filterOption={(input, option) => {
-                  const label = (option?.children ?? '').toString().toLowerCase();
-                  return label.includes(input.toLowerCase());
-                }}
-              >
-                {productList.map((p) => (
-                  <Option key={p.jepum_cd} value={p.jepum_cd}>
-                    {p.jepum_nm} ({p.jepum_cd})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-            
-            <Form.Item
-              label="장비번호"
-              name="dev_no"
-            >
-              <Input
-                name="dev_no"
-                placeholder="장비번호"
-                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-                onBlur={handleDevNoBlur}
-              />
-            </Form.Item>
+              <Form.Item label="제품" name="jepum_cd" rules={[{ required: true, message: '제품을 선택하세요.' }]}>
+                <Select
+                  showSearch placeholder="제품 검색" optionFilterProp="children"
+                  open={isProductDropdownOpen}
+                  onFocus={() => { if (!isProductSelectReady) setIsProductSelectReady(true); else setIsProductDropdownOpen(true); }}
+                  onSearch={(value) => { if (value && !isProductDropdownOpen) setIsProductDropdownOpen(true); }}
+                  onBlur={() => { setIsProductDropdownOpen(false); setIsProductSelectReady(false); }}
+                  onSelect={() => { setIsProductDropdownOpen(false); setIsProductSelectReady(false); }}
+                  filterOption={(input, option) => (option?.children ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+                >
+                  {productList.map((p) => (
+                    <Option key={p.jepum_cd} value={p.jepum_cd}>{p.jepum_nm} ({p.jepum_cd})</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              
+              <Form.Item label="장비번호" name="dev_no">
+                <Input name="dev_no" placeholder="장비번호" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} onBlur={handleDevNoBlur} />
+              </Form.Item>
 
-            <Form.Item
-              label="수량"
-              name="amt"
-              rules={[
-                { required: true, message: '수량을 입력하거나 선택하세요.' },
-                {
-                  validator: (_, value) => {
-                    const num = Number(value);
-                    if (!value) { 
+              <Form.Item label="수량" name="amt"
+                rules={[
+                  { required: true, message: '수량을 입력하거나 선택하세요.' },
+                  { validator: (_, value) => {
+                      const num = Number(value);
+                      if (!value) return Promise.resolve();
+                      if (isNaN(num)) return Promise.reject(new Error('수량은 숫자여야 합니다.'));
+                      if (num < 1) return Promise.reject(new Error('수량은 1 이상이어야 합니다.'));
                       return Promise.resolve();
-                    }
-                    if (isNaN(num)) {
-                      return Promise.reject(new Error('수량은 숫자여야 합니다.'));
-                    }
-                    if (num < 1) {
-                      return Promise.reject(new Error('수량은 1 이상이어야 합니다.'));
-                    }
-                    return Promise.resolve();
+                    },
                   },
-                },
-              ]}
-            >
-              <AutoComplete
-                options={[
-                  { value: '3050' },
-                  { value: '20500' },
                 ]}
-                filterOption={(inputValue, option) =>
-                  option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
-                }
               >
-                <Input
-                  placeholder="수량을 입력하거나 선택하세요"
-                  inputMode="numeric"
-                  onFocus={() => form.setFieldsValue({ amt: '' })}
-                />
-              </AutoComplete>
-            </Form.Item>
+                <AutoComplete
+                  options={[{ value: '3050' }, { value: '20500' }]}
+                  filterOption={(inputValue, option) => option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1}
+                >
+                  <Input placeholder="수량을 입력하거나 선택하세요" inputMode="numeric" onFocus={() => form.setFieldsValue({ amt: '' })} />
+                </AutoComplete>
+              </Form.Item>
 
-            <Form.Item
-              label="BIN No"
-              name="bin_no"
-              rules={[{ required: true, message: 'BIN No를 입력하세요.' }]}
-            >
-              <Input
-                name="bin_no"
-                placeholder="BIN No"
-                inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-              />
-            </Form.Item>
+              <Form.Item label="BIN No" name="bin_no" rules={[{ required: true, message: 'BIN No를 입력하세요.' }]}>
+                <Input name="bin_no" placeholder="BIN No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+              </Form.Item>
 
-            <Form.Item
-              label="작업자"
-              name="man_cd"
-              rules={[{ required: true, message: '작업자를 선택하세요.' }]}
-            >
-              <Select
-                placeholder="작업자 선택"
-                options={workerList}
-              />
-            </Form.Item>
+              <Form.Item label="작업자" name="man_cd" rules={[{ required: true, message: '작업자를 선택하세요.' }]}>
+                <Select placeholder="작업자 선택" options={workerList} />
+              </Form.Item>
 
-            <Form.Item>
-              <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
-                {editingRecord ? '수정하기' : '등록하기'}
-              </Button>
-              <Button onClick={() => {
-                  form.resetFields(); 
-                  setEditingRecord(null);
-                  form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
-                  setBarcodeInputValue('');
-                  if (barcodeScanOn && barcodeInputRef.current) {
-                    barcodeInputRef.current.focus();
-                  }
-                }}>초기화</Button>
-            </Form.Item>
-          </Form>
+              <Form.Item>
+                <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
+                  {editingRecord ? '수정하기' : '등록하기'}
+                </Button>
+                <Button onClick={() => {
+                    form.resetFields(); 
+                    setEditingRecord(null);
+                    form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
+                    setBarcodeInputValue('');
+                    if (barcodeScanOn && barcodeInputRef.current) barcodeInputRef.current.focus();
+                  }}>초기화</Button>
+              </Form.Item>
+            </Form>
+          </div>
         </TabPane>
 
-        {/* 조회 탭 */}
+        {/* 📌 [수정] TabPane 내부의 최상위 요소에 'no-print' 클래스 추가 */}
         <TabPane tab="조회" key="2">
-          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
-            <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
-              <Col span={9}>
-                <DatePicker
-                  value={fromDt}
-                  format="YYYY-MM-DD"
-                  onChange={(date) => setFromDt(date)}
-                />
-              </Col>
-              <span style={{ margin: '5px 2px' }}>~</span>
-              <Col span={9}>
-                <DatePicker
-                  value={toDt}
-                  format="YYYY-MM-DD"
-                  onChange={(date) => setToDt(date)}
-                />
-              </Col>
-                <Col span={8}>
-                  <Button type="primary" onClick={() => fetchTestResults(fromDt, toDt)}>
-                    조회
-                  </Button>
-                </Col>
-            </Row>
+          <div className="no-print"> {/* 👈 여기! */}
+            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
+              <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
+                <Col span={9}><DatePicker value={fromDt} format="YYYY-MM-DD" onChange={(date) => setFromDt(date)} /></Col>
+                <span style={{ margin: '5px 2px' }}>~</span>
+                <Col span={9}><DatePicker value={toDt} format="YYYY-MM-DD" onChange={(date) => setToDt(date)} /></Col>
+                <Col span={8}><Button type="primary" onClick={() => fetchTestResults(fromDt, toDt)}>조회</Button></Col>
+              </Row>
+            </div>
+            <Table columns={columns} dataSource={testResults} pagination={{ pageSize: 10 }} />
           </div>
-          <Table columns={columns} dataSource={testResults} pagination={{ pageSize: 10 }} />
         </TabPane>
       </Tabs>
 
-      {/* 📌 [수정] 인쇄 확인 모달 (footer prop 제거) */}
+      {/* --- 3. 모달 (변경 없음) --- */}
       <Modal
         title={modalTitle} 
-        open={isPrintModalVisible} 
+        open={!!printableData}
         onCancel={handleModalClose}
         width={400} 
-        footer={null} // 📌 footer를 null로 설정
+        footer={null}
+        getContainer={false} 
       >
-        <p>
-          {modalTitle.includes('완료') 
-            ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
-            : `다음 라벨을 재인쇄합니다.`
-          }
-        </p>
-        <hr style={{ margin: '16px 0' }} />
-        
-        <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (50mm x 30mm)</h3>
-        
-        {/* 📌 [중요] 모달이 열려있을 때(isPrintModalVisible=true)만 
-          LabelToPrint 컴포넌트를 렌더링합니다.
-          이렇게 해야 printComponentRef.current가 항상 유효합니다.
-        */}
-        <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
-          {isPrintModalVisible && (
-            <LabelToPrint ref={printComponentRef} data={printableData} />
-          )}
-        </div>
+        <div className="modal-print-preview-content">
+          <p>
+            {modalTitle.includes('완료') 
+              ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
+              : `다음 라벨을 재인쇄합니다.`
+            }
+          </p>
+          <hr style={{ margin: '16px 0' }} />
+          
+          <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (50mm x 30mm)</h3>
+          
+          <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
+            {printableData && (
+              <LabelToPrint data={printableData} />
+            )}
+          </div>
 
-        {/* 📌 [신규] 모달 내부에 버튼 직접 배치 */}
-        <div style={{ textAlign: 'right', marginTop: '24px' }}>
-          <Button key="close" onClick={handleModalClose} style={{ marginRight: 8 }}>
-            닫기
-          </Button>
-          <Button key="print" type="primary" onClick={handlePrint}>
-            라벨 인쇄
-          </Button>
+          <div style={{ textAlign: 'right', marginTop: '24px' }}>
+            <Button key="close" onClick={handleModalClose} style={{ marginRight: 8 }}>
+              닫기
+            </Button>
+            <Button key="print" type="primary" onClick={handleSimplePrint}>
+              라벨 인쇄
+            </Button>
+          </div>
         </div>
       </Modal>
 

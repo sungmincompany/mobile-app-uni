@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -11,3 +11,85 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* --- 📌 [수정] CSS 인쇄 규칙 (v20 - 최종본) --- */
+
+/* 1. 용지 크기 정의 (변경 없음) */
+@page {
+  size: 50mm 30mm;
+  margin: 0;
+}
+
+@media print {
+  
+  /* 2. 💥 [핵심 1] 모든 상위 컨테이너의 높이를 0으로 만들어 
+     22페이지 문제를 원천 봉쇄합니다. 
+  */
+  html, body, #root {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* 3. 💥 [핵심 2] 메인 화면(날짜 포함)을 '공간'까지 없앱니다. */
+  .no-print {
+    display: none !important;
+  }
+
+  /* 4. 💥 [핵심 3] body의 *모든* 요소를 숨깁니다 (만약을 대비). */
+  body * {
+    visibility: hidden !important;
+  }
+  
+  /* 5. 💥 모달 껍데기만 다시 켭니다. */
+  #test-result-container,
+  #test-result-container .ant-modal-wrap,
+  #test-result-container .ant-modal,
+  #test-result-container .ant-modal-content,
+  #test-result-container .ant-modal-body,
+  #test-result-container .modal-print-preview-content,
+  #test-result-container .label-print-container-class,
+  #test-result-container .label-print-container-class * {
+      visibility: visible !important;
+  }
+
+  /* 6. 모든 래퍼(wrapper)의 스타일을 리셋합니다. */
+  .ant-modal-mask,
+  .ant-modal-wrap,
+  .ant-modal,
+  .ant-modal-content,
+  .ant-modal-body {
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: auto !important; /* 높이 리셋 */
+  }
+
+  /* 7. 💥 모달의 불필요한 부분(헤더, 버튼 등)을 숨깁니다. */
+  .ant-modal-header,
+  .ant-modal-close,
+  .modal-print-preview-content > p,
+  .modal-print-preview-content > hr,
+  .modal-print-preview-content > h3,
+  .modal-print-preview-content > div:last-child {
+      display: none !important;
+  }
+
+  /* 8. 💥 라벨을 (0,0)에 강제 배치합니다. */
+  .label-print-container-class {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 50mm !important;
+    height: 30mm !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+}
+/* --- 📌 인쇄 CSS 끝 --- */
