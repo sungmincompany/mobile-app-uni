@@ -1,9 +1,10 @@
+// src/pages/Test_Result.js
+
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete
-} from 'antd';
+// 📌 [수정] 'InputNumber'를 import 목록에서 제거했습니다.
+import { Tabs, Form, Input, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete } from 'antd';
 import dayjs from 'dayjs';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react'; 
 import { useReactToPrint } from 'react-to-print';
 
 const { TabPane } = Tabs;
@@ -50,7 +51,6 @@ const LabelToPrint = React.forwardRef(({ data }, ref) => {
   const tdStyle = { border: '1px solid #333', padding: '1px 2px', fontSize: '7pt', wordBreak: 'break-all' };
   const thStyle = { ...tdStyle, textAlign: 'left', width: '30%', backgroundColor: '#eee' };
 
-  // 📌 data.work_dt는 'YYYY-MM-DD' 형식의 문자열일 수 있으므로 그대로 사용
   const displayDate = data.work_dt?.format ? data.work_dt.format('YYYY-MM-DD') : data.work_dt;
 
   return (
@@ -127,7 +127,7 @@ const TestResult = () => {
   const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const [printableData, setPrintableData] = useState(null);
   
-  // 📌 [신규] 모달 제목을 위한 State
+  // [신규] 모달 제목을 위한 State
   const [modalTitle, setModalTitle] = useState('등록/수정 완료');
 
   // [신규] 인쇄할 컴포넌트를 참조하기 위한 Ref
@@ -172,7 +172,7 @@ const TestResult = () => {
     }
   };
 
-  // 📌 [신규] 재인쇄 버튼 클릭 핸들러
+  // [신규] 재인쇄 버튼 클릭 핸들러
   const handleRePrint = (record) => {
     // 1. 제품명 찾기
     const product = productList.find(p => p.jepum_cd === record.jepum_cd);
@@ -188,10 +188,10 @@ const TestResult = () => {
     setPrintableData({
       lot_no: record.lot_no,
       lot_no2: record.lot_no2,
-      jepum_nm: jepum_nm, // 📌 제품명
+      jepum_nm: jepum_nm, // 제품명
       amt: record.amt,
       man_cd: record.man_cd,
-      work_dt: displayDate, // 📌 포맷된 날짜
+      work_dt: displayDate, // 포맷된 날짜
     });
     
     // 4. 모달 제목 설정
@@ -225,7 +225,7 @@ const TestResult = () => {
   };
 
 
-  // --- 유휴 상태 감지 및 자동 포커스 로직 (기존과 동일) ---
+  // --- 유휴 상태 감지 및 자동 포커스 로직 ---
   useEffect(() => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
@@ -259,7 +259,7 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- 바코드 스캔 처리 핸들러 (기존과 동일) ---
+  // --- 바코드 스캔 처리 핸들러 ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
     if (barcodeValue) {
@@ -329,7 +329,7 @@ const TestResult = () => {
     }
   };
 
-  // --- 상위 LOT No로 제품 정보 조회 (기존과 동일) ---
+  // --- 상위 LOT No로 제품 정보 조회 ---
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
     if (!lotNo2Value) return lotNo2Value;
     console.log(`상위 LOT(${lotNo2Value})로 제품 정보 조회를 시작합니다.`);
@@ -378,7 +378,7 @@ const TestResult = () => {
   };
 
 
-  // 2) 제품 목록 불러오기 (기존과 동일)
+  // 2) 제품 목록 불러오기
   useEffect(() => {
     fetch(`/api/select/jepum/jepum?v_db=${v_db}`)
       .then((res) => res.json())
@@ -386,7 +386,7 @@ const TestResult = () => {
       .catch((err) => console.error('제품 목록 에러:', err));
   }, [v_db]);
 
-  // 작업자 목록 불러오기 (기존과 동일)
+  // 작업자 목록 불러오기
   useEffect(() => {
     const fetchWorkerList = async () => {
       try {
@@ -407,7 +407,7 @@ const TestResult = () => {
   }, [v_db]); 
 
 
-  // 3) Test Result 조회 (기존과 동일)
+  // 3) Test Result 조회
   const fetchTestResults = async (startDate, endDate) => {
     try {
       const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
@@ -433,7 +433,7 @@ const TestResult = () => {
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
-  // 4) 📌 [수정] 등록/수정 처리
+  // 4) 등록/수정 처리
   const onFinish = async (values) => {
     try {
       const work_dt = values.work_dt ? values.work_dt.format('YYYY-MM-DD') : null;
@@ -448,12 +448,11 @@ const TestResult = () => {
         work_dt,
       };
 
-      // 📌 [신규] 인쇄용 데이터 준비 (jepum_nm 포함)
       const product = productList.find(p => p.jepum_cd === values.jepum_cd);
       const dataForPrint = {
-        ...values, // 폼의 모든 값을 포함
-        work_dt: work_dt, // 포맷된 날짜 문자열로 덮어쓰기
-        jepum_nm: product ? product.jepum_nm : values.jepum_cd, // 제품명
+        ...values, 
+        work_dt: work_dt, 
+        jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
 
       if (!editingRecord) {
@@ -473,7 +472,6 @@ const TestResult = () => {
           message.success('등록 성공!'); 
           fetchTestResults(fromDt, toDt); 
           
-          // 📌 [수정] 모달 제목 설정 및 띄우기
           setModalTitle('등록 완료'); 
           setPrintableData(dataForPrint);
           setIsPrintModalVisible(true);
@@ -498,14 +496,12 @@ const TestResult = () => {
           message.success('수정 성공!');
           fetchTestResults(fromDt, toDt);
 
-          // 📌 [수정] 모달 제목 설정 및 띄우기
           setModalTitle('수정 완료');
           setPrintableData(dataForPrint);
           setIsPrintModalVisible(true);
 
           form.resetFields(); 
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
-          // 📌 setActiveTab('2') 등은 모달 닫을 때(handleModalClose) 실행
         }
       }
     } catch (error) {
@@ -518,7 +514,7 @@ const TestResult = () => {
     message.error('모든 항목을 올바르게 입력해주세요!');
   };
 
-  // 5) 수정/삭제 (기존과 동일)
+  // 5) 수정/삭제
   const handleEdit = (record) => {
     setEditingRecord(record);
     let workDtObj = null;
@@ -565,7 +561,7 @@ const TestResult = () => {
     });
   };
 
-  // 7) 📌 [수정] 테이블 컬럼 (재인쇄 버튼 추가)
+  // 7) [수정] 테이블 컬럼 (재인쇄 버튼 추가)
   const columns = [
     {
       title: '작업일자',
@@ -625,9 +621,8 @@ const TestResult = () => {
       align: 'center',
       width: 80,
       render: (_, record) => {
-        // 📌 Popover 내용 수정
         const popoverContent = (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
             <Button type="link" onClick={() => handleEdit(record)}>
               수정
             </Button>
@@ -656,7 +651,7 @@ const TestResult = () => {
   // 8) 화면 렌더링
   return (
     <div style={{ padding: 16 }}>
-      {/* --- 제목과 가상키보드 토글 영역 (기존과 동일) --- */}
+      {/* --- 제목과 가상키보드 토글 영역 --- */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2>TEST 공정 결과조회</h2>
         <Space>
@@ -671,7 +666,7 @@ const TestResult = () => {
       </div>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        {/* 등록 탭 (기존과 동일) */}
+        {/* 등록 탭 */}
         <TabPane tab="등록" key="1">
           <Form.Item label="바코드 스캔">
             <Row gutter={8} align="middle" wrap={false}>
@@ -875,7 +870,7 @@ const TestResult = () => {
           </Form>
         </TabPane>
 
-        {/* 조회 탭 (기존과 동일) */}
+        {/* 조회 탭 */}
         <TabPane tab="조회" key="2">
           <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
             <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
@@ -905,9 +900,9 @@ const TestResult = () => {
         </TabPane>
       </Tabs>
 
-      {/* 📌 [수정] 인쇄 확인 모달 */}
+      {/* [수정] 인쇄 확인 모달 */}
       <Modal
-        title={modalTitle} // 📌 동적 제목으로 변경
+        title={modalTitle} // 📌 동적 제목
         open={isPrintModalVisible} 
         onOk={handleModalClose}     
         onCancel={handleModalClose}
@@ -921,10 +916,12 @@ const TestResult = () => {
         ]}
         width={400} 
       >
-        {/* 📌 모달 내용 수정 */}
+        {/* 📌 동적 텍스트 */}
         <p>
-          다음 정보가 성공적으로 {modalTitle}되었습니다.
-          {modalTitle.includes('재인쇄') && " 라벨을 인쇄하세요."}
+          {modalTitle.includes('완료') 
+            ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
+            : `다음 라벨을 재인쇄합니다.`
+          }
         </p>
         <hr style={{ margin: '16px 0' }} />
         
