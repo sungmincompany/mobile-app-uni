@@ -1,174 +1,286 @@
 import React, { useState, useEffect, useRef } from 'react';
-// AutoComplete를 import에 유지합니다.
-import { Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete } from 'antd';
+import {
+  Tabs, Form, Input, InputNumber, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete
+} from 'antd';
 import dayjs from 'dayjs';
+import { QRCodeSVG } from 'qrcode.react';
+import { useReactToPrint } from 'react-to-print';
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { Option } = Select;
 
+// [라벨 컴포넌트]
+const LabelToPrint = React.forwardRef(({ data }, ref) => {
+  if (!data) return null;
+
+  const labelStyle = {
+    width: '50mm',
+    height: '30mm',
+    padding: '2mm',
+    boxSizing: 'border-box',
+    fontFamily: 'Arial, sans-serif',
+    fontSize: '8pt',
+    lineHeight: 1.2,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    border: '1px dashed #999',
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    color: 'black',
+  };
+
+  const qrContainerStyle = {
+    flexShrink: 0,
+    width: '24mm',
+    height: '24mm',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '2mm',
+  };
+
+  const infoStyle = {
+    flexGrow: 1,
+    width: 'calc(100% - 26mm)',
+  };
+  
+  const tableStyle = { width: '100%', borderCollapse: 'collapse' };
+  const tdStyle = { border: '1px solid #333', padding: '1px 2px', fontSize: '7pt', wordBreak: 'break-all' };
+  const thStyle = { ...tdStyle, textAlign: 'left', width: '30%', backgroundColor: '#eee' };
+
+  // 📌 data.work_dt는 'YYYY-MM-DD' 형식의 문자열일 수 있으므로 그대로 사용
+  const displayDate = data.work_dt?.format ? data.work_dt.format('YYYY-MM-DD') : data.work_dt;
+
+  return (
+    <div ref={ref} style={labelStyle} className="label-print-container">
+      {/* QR 코드 영역 */}
+      <div style={qrContainerStyle}>
+        <QRCodeSVG
+          value={data.lot_no || 'N/A'}
+          size={85} // 약 24mm
+          style={{ width: '24mm', height: '24mm' }}
+          level="M"
+        />
+      </div>
+      {/* 정보 영역 */}
+      <div style={infoStyle}>
+        <table style={tableStyle}>
+          <tbody>
+            <tr>
+              <th style={thStyle}>LOT</th>
+              <td style={tdStyle}>{data.lot_no}</td>
+            </tr>
+            <tr>
+              <th style={thStyle}>상위</th>
+              <td style={tdStyle}>{data.lot_no2}</td>
+            </tr>
+            <tr>
+              <th style={thStyle}>제품</th>
+              <td style={tdStyle}>{data.jepum_nm}</td>
+            </tr>
+            <tr>
+              <th style={thStyle}>수량</th>
+              <td style={tdStyle}>{data.amt}</td>
+            </tr>
+              <tr>
+              <th style={thStyle}>작업</th>
+              <td style={tdStyle}>{data.man_cd}</td>
+            </tr>
+            <tr>
+              <th style={thStyle}>일자</th>
+              <td style={tdStyle}>{displayDate}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+});
+
+
 const TestResult = () => {
   // 1) Form, State 초기화
   const [form] = Form.useForm();
 
-  // 📌 [신규] '장비번호' 필드의 onBlur(포커스 아웃) 이벤트 핸들러
-  const handleDevNoBlur = () => {
-    // 폼의 현재 값들을 모두 가져옵니다.
-    const allValues = form.getFieldsValue();
-    const newDevNo = allValues.dev_no; // 현재 dev_no 값
-    
-    // onValuesChange와 동일한 형식의 인자를 만들어줍니다.
-    const changedValues = { dev_no: newDevNo }; 
+  // (기존 상태값들...)
+  const [productList, setProductList] = useState([]);
+  const [workerList, setWorkerList] = useState([]);
+  const [testResults, setTestResults] = useState([]);
+  const [fromDt, setFromDt] = useState(dayjs().startOf('month'));
+  const [toDt, setToDt] = useState(dayjs());
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [activeTab, setActiveTab] = useState('1');
+  const v_db = '16_UR'; 
+  const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false);
+  const [barcodeScanOn, setBarcodeScanOn] = useState(true);
+  const barcodeInputRef = useRef(null);
+  const [idleCountdown, setIdleCountdown] = useState(10);
+  const idleTimerRef = useRef(null);
+  const countdownTimerRef = useRef(null);
+  const [barcodeInputValue, setBarcodeInputValue] = useState('');
+  const [isProductSelectReady, setIsProductSelectReady] = useState(false);
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
-    // 📌 [중요] 수동으로 'handleValuesChange'를 호출합니다.
-    // 수동 입력이 완료되었을 때만 LOT No 생성 로직을 실행합니다.
+  // [신규] 인쇄 모달을 위한 State
+  const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
+  const [printableData, setPrintableData] = useState(null);
+  
+  // 📌 [신규] 모달 제목을 위한 State
+  const [modalTitle, setModalTitle] = useState('등록/수정 완료');
+
+  // [신규] 인쇄할 컴포넌트를 참조하기 위한 Ref
+  const printComponentRef = useRef(null);
+
+  // [신규] react-to-print 훅 설정
+  const handlePrint = useReactToPrint({
+    content: () => printComponentRef.current,
+    pageStyle: `
+      @page {
+        size: 50mm 30mm;
+        margin: 0mm;
+      }
+      @media print {
+        html, body {
+          width: 50mm;
+          height: 30mm;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+        }
+        .label-print-container {
+          width: 50mm;
+          height: 30mm;
+          margin: 0;
+          padding: 0;
+          border: none !important;
+        }
+      }
+    `,
+  });
+
+  // [신규] 모달 닫기 핸들러
+  const handleModalClose = () => {
+    setIsPrintModalVisible(false);
+    setPrintableData(null);
+    
+    // '수정' 작업이 완료되어 모달이 뜬 경우에만 탭을 변경
+    if (editingRecord) {
+      setActiveTab('2');
+      setEditingRecord(null); // 수정 상태 초기화
+    }
+  };
+
+  // 📌 [신규] 재인쇄 버튼 클릭 핸들러
+  const handleRePrint = (record) => {
+    // 1. 제품명 찾기
+    const product = productList.find(p => p.jepum_cd === record.jepum_cd);
+    const jepum_nm = product ? product.jepum_nm : record.jepum_cd;
+
+    // 2. 날짜 형식 변환 (YYYYMMDD -> YYYY-MM-DD)
+    let displayDate = record.work_dt;
+    if (record.work_dt && record.work_dt.length === 8) {
+      displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(4, 6)}-${record.work_dt.slice(6, 8)}`;
+    }
+
+    // 3. 인쇄할 데이터 세팅
+    setPrintableData({
+      lot_no: record.lot_no,
+      lot_no2: record.lot_no2,
+      jepum_nm: jepum_nm, // 📌 제품명
+      amt: record.amt,
+      man_cd: record.man_cd,
+      work_dt: displayDate, // 📌 포맷된 날짜
+    });
+    
+    // 4. 모달 제목 설정
+    setModalTitle('라벨 재인쇄');
+    
+    // 5. 모달 띄우기
+    setIsPrintModalVisible(true);
+  };
+
+
+  // '장비번호' 필드의 onBlur(포커스 아웃) 이벤트 핸들러
+  const handleDevNoBlur = () => {
+    const allValues = form.getFieldsValue();
+    const newDevNo = allValues.dev_no;
+    const changedValues = { dev_no: newDevNo }; 
     handleValuesChange(changedValues, allValues);
   };
 
-  // 📌 [신규] Form 값이 변경될 때마다 호출되는 핸들러
+  // Form 값이 변경될 때마다 호출되는 핸들러
   const handleValuesChange = (changedValues, allValues) => {
-    // 1. 'dev_no' (장비번호) 필드가 변경되었는지 확인
     if (changedValues.hasOwnProperty('dev_no')) {
       const newDevNo = changedValues.dev_no;
-
-      // 2. 장비번호가 입력되었고, LOT No가 비어있는 경우에만 자동 생성
-      //    (수정 시 기존 LOT No를 덮어쓰지 않기 위함)
       if (newDevNo && !allValues.lot_no) {
-
-        // 3. 날짜(MMDD)와 시간(HHMM) 생성
         const now = dayjs();
-        const mmdd = now.format('MMDD'); // 예: 1023
-        const hhmm = now.format('HHMM'); // 예: 1709
-
-        // 4. 형식에 맞춰 LOT No 조합
+        const mmdd = now.format('MMDD'); 
+        const hhmm = now.format('HHMM'); 
         const generatedLotNo = `${mmdd}-${hhmm}-${newDevNo}`;
-
-        // 5. Form의 'lot_no' 필드에 값 설정
         form.setFieldsValue({ lot_no: generatedLotNo });
       }
     }
   };
 
-  // 제품 목록
-  const [productList, setProductList] = useState([]);
 
-  // 📌 [추가] 작업자 목록
-  const [workerList, setWorkerList] = useState([]);
-
-  // 조회된 Test Result 목록
-  const [testResults, setTestResults] = useState([]);
-
-  // 날짜 검색용
-  const [fromDt, setFromDt] = useState(dayjs().startOf('month'));
-  const [toDt, setToDt] = useState(dayjs());
-
-  // 등록/수정 구분
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [activeTab, setActiveTab] = useState('1');
-
-  // DB 스키마
-  const v_db = '16_UR';   // 예시
-
-  // --- 📌 [추가 1] 가상 키보드 ON/OFF 상태 (기본값 false: OFF) ---
-  const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false);
-
-  // --- 바코드 스캔 관련 상태 및 Ref 추가 ---
-  const [barcodeScanOn, setBarcodeScanOn] = useState(true); // 바코드 스캔 ON/OFF 상태 (초기값 true)
-  const barcodeInputRef = useRef(null); // 바코드 입력 필드 Ref
-  const [idleCountdown, setIdleCountdown] = useState(10); // 카운트다운 상태 (10초로 변경)
-  const idleTimerRef = useRef(null); // 유휴 시간 타이머 Ref
-  const countdownTimerRef = useRef(null); // 카운트다운 표시용 타이머 Ref
-
-  // --- [수정 1] 바코드 Input 값을 제어하기 위한 state ---
-  const [barcodeInputValue, setBarcodeInputValue] = useState('');
-
-  // --- '두번 터치로 드롭다운 열기'를 위한 상태 (제품 선택 필드 전용) ---
-  const [isProductSelectReady, setIsProductSelectReady] = useState(false);
-  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
-
-
-  // --- 유휴 상태 감지 및 자동 포커스 로직 ---
+  // --- 유휴 상태 감지 및 자동 포커스 로직 (기존과 동일) ---
   useEffect(() => {
-    // 타이머를 리셋하는 함수
     const resetIdleTimer = () => {
-      // 기존 타이머 제거
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-
-      // 자동 포커스 기능이 꺼져있으면 여기서 중단
       if (!barcodeScanOn || activeTab !== '1') {
         return;
       }
-      
-      // 카운트다운 초기화 및 1초마다 감소
-      setIdleCountdown(10); // 10초로 변경
+      setIdleCountdown(10); 
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown(prev => Math.max(0, prev - 1));
       }, 1000);
-
-      // 10초 후에 포커스 실행
       idleTimerRef.current = setTimeout(() => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current.input) {
           barcodeInputRef.current.focus();
         }
-      }, 10000); // 10초로 변경
+      }, 10000); 
     };
-
-    // 자동 포커스가 켜져있고, 등록 탭일 때만 이벤트 리스너 활성화
     if (barcodeScanOn && activeTab === '1') {
-      // 이벤트 리스너 추가
       const events = ['mousedown', 'touchstart', 'keydown'];
       events.forEach(event => window.addEventListener(event, resetIdleTimer));
-
-      // 타이머 최초 실행
       resetIdleTimer();
-
-      // 클린업 함수: 컴포넌트 언마운트 또는 의존성 변경 시 실행
       return () => {
         events.forEach(event => window.removeEventListener(event, resetIdleTimer));
         clearTimeout(idleTimerRef.current);
         clearInterval(countdownTimerRef.current);
       };
     } else {
-      // 자동 포커스가 꺼져있으면 모든 타이머 정리
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
     }
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- [수정 2] 바코드 스캔 처리 핸들러 (API 우선 호출 + LOT No 생성 수동 호출) ---
+  // --- 바코드 스캔 처리 핸들러 (기존과 동일) ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
-
     if (barcodeValue) {
       console.log('스캔된 바코드:', barcodeValue);
-
       const regexPlus = /^(.*?)\+(.*?)\((.*?)\+(.*?)\)$/;
       const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
-
       const matchPlus = barcodeValue.match(regexPlus);
       const matchSingle = barcodeValue.match(regexSingle);
-
       const fieldNames = {
         lot_no2: '상위 LOT No',
         dev_no: '장비번호',
         bin_no: 'BIN No',
       };
-      
-      // 📌 [신규] 폼에 설정할 값들을 임시로 저장할 객체
       let changedData = {};
-      // 📌 [신규] 폼의 모든 값을 미리 가져오기
       let allData = form.getFieldsValue(); 
 
-
-      // --- 📌 1. "Plus" 형식 확인
       if (matchPlus) {
         let value1 = matchPlus[1]; 
         let value2 = matchPlus[2]; 
         const field1 = matchPlus[3];
         const field2 = matchPlus[4];
-
         const fieldName1 = fieldNames[field1] || field1;
         const fieldName2 = fieldNames[field2] || field2;
 
@@ -183,60 +295,33 @@ const TestResult = () => {
             `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
           );
         }
-        
-        // 📌 [수정] 폼에 바로 설정하기 *전에* 임시 객체에 저장
-        changedData = {
-          [field1]: value1,
-          [field2]: value2,
-        };
-
+        changedData = { [field1]: value1, [field2]: value2 };
       }
-      // --- 📌 2. "Single" 형식 확인
       else if (matchSingle) {
         const valueToSet = matchSingle[1];
         const fieldToSet = matchSingle[2];
         const fieldName = fieldNames[fieldToSet];
-
         if (fieldToSet === 'lot_no2') {
           const finalValue = await fetchProductInfoByLotNo2(valueToSet);
-          // 📌 [수정] 임시 객체에 저장
           changedData = { [fieldToSet]: finalValue };
         } else {
-          // 📌 lot_no2가 아닌 dev_no, bin_no의 경우
-          // form.setFieldsValue({ [fieldToSet]: valueToSet }); // 📌 아래 공통 로직으로 이동
           message.success(
             `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
           );
-          // 📌 [수정] 임시 객체에 저장
           changedData = { [fieldToSet]: valueToSet };
         }
       }
-      // --- 📌 3. 일치하는 패턴이 없는 경우
       else {
         const finalValue = await fetchProductInfoByLotNo2(barcodeValue);
-        // 📌 [수정] 임시 객체에 저장
         changedData = { lot_no2: finalValue };
       }
 
-      // --- 📌 [신규] 공통 로직 (가장 중요) ---
-      
-      // 1. 폼에 값을 *먼저* 설정합니다.
       form.setFieldsValue(changedData);
-
-      // 2. 폼의 모든 값을 *다시* 가져옵니다. (방금 설정한 값 포함)
       allData = form.getFieldsValue(); 
-      
-      // 3. (중요) `dev_no`가 방금 변경된 값에 포함되어 있는지 확인합니다.
       if (changedData.hasOwnProperty('dev_no')) {
-        // 4. 수동으로 `handleValuesChange` 함수를 호출하여 이벤트를 시뮬레이션합니다.
         console.log("--- 'dev_no' 스캔 감지. 수동으로 onValuesChange 로직 호출 ---");
-        // 5. (changedValues, allValues) 인자를 전달합니다.
         handleValuesChange(changedData, allData);
       }
-      // --- [신규] 공통 로직 끝 ---
-
-
-      // --- 공통 로직 (바코드 입력창 비우기 및 포커스) ---
       setBarcodeInputValue('');
       if (barcodeInputRef.current) {
         barcodeInputRef.current.focus();
@@ -244,28 +329,20 @@ const TestResult = () => {
     }
   };
 
-  // --- 📌 [수정] 상위 LOT No로 제품 정보 조회, bigo39/40 조합 값을 반환하는 함수 ---
+  // --- 상위 LOT No로 제품 정보 조회 (기존과 동일) ---
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
-    // lotNo2Value: 바코드에서 스캔된 원래 값
-    if (!lotNo2Value) return lotNo2Value; // 📌 스캔된 값 그대로 반환
-
+    if (!lotNo2Value) return lotNo2Value;
     console.log(`상위 LOT(${lotNo2Value})로 제품 정보 조회를 시작합니다.`);
-
     try {
       const res = await fetch(
         `/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`
       );
-
       if (!res.ok) {
         throw new Error(`서버 응답 오류: ${res.status}`);
       }
-
       const data = await res.json();
-
       if (data && data.length > 0) {
-        const product = data[0]; // { jepum_cd, jepum_nm, bigo39, bigo40 }
-
-        // 1. 제품 코드 설정 (이 로직은 유지)
+        const product = data[0]; 
         if (product.jepum_cd) {
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
           message.success(
@@ -276,42 +353,32 @@ const TestResult = () => {
             `상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`
           );
         }
-
-        // 2. 📌 [요청 사항] bigo39, bigo40 값을 조합하여 *반환*
-        //    (두 값이 모두 존재하는지 확인)
         if (product.bigo39 && product.bigo40) {
           const combinedLotNo2 = `${product.bigo39}-${product.bigo40}`;
-
-          // 📌 사용자에게 어떤 값으로 설정되는지 알려줌
           message.info(
             `상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`
           );
-
-          // 📌 조합된 값을 반환
           return combinedLotNo2;
         }
-
-        // --- bigo 조합이 없는 경우 ---
         message.success(
           `상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`
         );
-        return lotNo2Value; // 📌 원래 스캔 값 반환
-
+        return lotNo2Value;
       } else {
         message.warning(
           `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
         );
-        return lotNo2Value; // 📌 정보가 없어도 원래 스캔 값 반환
+        return lotNo2Value;
       }
     } catch (err) {
       console.error('fetchProductInfoByLotNo2 에러:', err);
       message.error('제품 정보 조회 중 오류가 발생했습니다.');
-      return lotNo2Value; // 📌 에러 시에도 원래 스캔 값 반환
+      return lotNo2Value;
     }
   };
 
 
-  // 2) 제품 목록 불러오기
+  // 2) 제품 목록 불러오기 (기존과 동일)
   useEffect(() => {
     fetch(`/api/select/jepum/jepum?v_db=${v_db}`)
       .then((res) => res.json())
@@ -319,34 +386,28 @@ const TestResult = () => {
       .catch((err) => console.error('제품 목록 에러:', err));
   }, [v_db]);
 
-  // 📌 [추가] 작업자 목록 불러오기 (dept_cd = 'P0503' 고정)
+  // 작업자 목록 불러오기 (기존과 동일)
   useEffect(() => {
     const fetchWorkerList = async () => {
       try {
-        // dept_cd='P0503' 하드코딩
         const res = await fetch(`/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`);
         if (!res.ok) throw new Error('작업자 목록 조회 오류');
         const data = await res.json();
-        
-        // data 형식: [{emp_nmk: "홍길동"}, {emp_nmk: "이순신"}]
-        // Select의 options prop 형식: [{value: "홍길동", label: "홍길동"}]
         const formattedList = data.map(worker => ({
-          value: worker.emp_nmk, // 폼에서 man_cd로 전송될 값
-          label: worker.emp_nmk, // 사용자에게 보여질 이름
+          value: worker.emp_nmk,
+          label: worker.emp_nmk,
         }));
         setWorkerList(formattedList);
-
       } catch (err) {
         console.error('fetchWorkerList 에러:', err);
         message.error('작업자 목록을 불러오는 데 실패했습니다.');
       }
     };
-
     fetchWorkerList();
-  }, [v_db]); // v_db가 변경될 때 (거의 없음) 다시 호출
+  }, [v_db]); 
 
 
-  // 3) Test Result 조회
+  // 3) Test Result 조회 (기존과 동일)
   const fetchTestResults = async (startDate, endDate) => {
     try {
       const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
@@ -357,11 +418,9 @@ const TestResult = () => {
       );
       if (!res.ok) throw new Error('TEST 실적 조회 오류');
       const data = await res.json();
-
       data.forEach((item, idx) => {
         item.key = idx;
       });
-
       setTestResults(data);
     } catch (err) {
       console.error('fetchTestResults 에러:', err);
@@ -374,23 +433,27 @@ const TestResult = () => {
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
-  // 4) 등록/수정 처리
+  // 4) 📌 [수정] 등록/수정 처리
   const onFinish = async (values) => {
     try {
-      // work_dt "YYYY-MM-DD" → 서버에서 "YYYYMMDD" 변환 가능
       const work_dt = values.work_dt ? values.work_dt.format('YYYY-MM-DD') : null;
-
-      // 공통 body
       const bodyPayload = {
         lot_no: values.lot_no,
-        lot_no2: values.lot_no2, // 상위 LOT No 추가
-        dev_no: values.dev_no,   // 장비번호 추가
+        lot_no2: values.lot_no2,
+        dev_no: values.dev_no,
         jepum_cd: values.jepum_cd,
-        // 📌 [수정] AutoComplete로 받은 값(문자열일 수 있음)을 숫자로 변환
         amt: Number(values.amt) || 0,
-        man_cd: values.man_cd,   // 📌 작업자 이름(emp_nmk)이 전송됨
-        bin_no: values.bin_no,   // bigo_1
+        man_cd: values.man_cd,
+        bin_no: values.bin_no,
         work_dt,
+      };
+
+      // 📌 [신규] 인쇄용 데이터 준비 (jepum_nm 포함)
+      const product = productList.find(p => p.jepum_cd === values.jepum_cd);
+      const dataForPrint = {
+        ...values, // 폼의 모든 값을 포함
+        work_dt: work_dt, // 포맷된 날짜 문자열로 덮어쓰기
+        jepum_nm: product ? product.jepum_nm : values.jepum_cd, // 제품명
       };
 
       if (!editingRecord) {
@@ -407,11 +470,16 @@ const TestResult = () => {
         if (resData.error) {
           message.error(`등록 실패: ${resData.error}`);
         } else {
-          message.success('등록 성공!');
-          fetchTestResults(fromDt, toDt);
-          form.resetFields();
-          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); // 📌 초기화 시 기본값 재설정
-          // setActiveTab('2'); 연속등록을 하기 위한 주석처리
+          message.success('등록 성공!'); 
+          fetchTestResults(fromDt, toDt); 
+          
+          // 📌 [수정] 모달 제목 설정 및 띄우기
+          setModalTitle('등록 완료'); 
+          setPrintableData(dataForPrint);
+          setIsPrintModalVisible(true);
+
+          form.resetFields(); 
+          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); 
         }
       } else {
         // 수정
@@ -429,10 +497,15 @@ const TestResult = () => {
         } else {
           message.success('수정 성공!');
           fetchTestResults(fromDt, toDt);
-          form.resetFields();
-          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); // 📌 초기화 시 기본값 재설정
-          setEditingRecord(null);
-          setActiveTab('2');
+
+          // 📌 [수정] 모달 제목 설정 및 띄우기
+          setModalTitle('수정 완료');
+          setPrintableData(dataForPrint);
+          setIsPrintModalVisible(true);
+
+          form.resetFields(); 
+          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
+          // 📌 setActiveTab('2') 등은 모달 닫을 때(handleModalClose) 실행
         }
       }
     } catch (error) {
@@ -445,27 +518,24 @@ const TestResult = () => {
     message.error('모든 항목을 올바르게 입력해주세요!');
   };
 
-  // 5) 수정/삭제
+  // 5) 수정/삭제 (기존과 동일)
   const handleEdit = (record) => {
     setEditingRecord(record);
-
     let workDtObj = null;
     if (record.work_dt && record.work_dt.length === 8) {
-      // 예: "20250315" → dayjs("2025-03-15", "YYYY-MM-DD")
       const year = record.work_dt.slice(0, 4);
       const month = record.work_dt.slice(4, 6);
       const day = record.work_dt.slice(6, 8);
       workDtObj = dayjs(`${year}-${month}-${day}`, 'YYYY-MM-DD');
     }
-
     form.setFieldsValue({
       lot_no: record.lot_no,
-      lot_no2: record.lot_no2, // 상위 LOT No 추가
-      dev_no: record.dev_no,   // 장비번호 추가
+      lot_no2: record.lot_no2,
+      dev_no: record.dev_no,
       jepum_cd: record.jepum_cd,
       amt: record.amt,
-      man_cd: record.man_cd,   // 백엔드 조회 시 man_cd 로 내려오는 경우
-      bin_no: record.bigo_1,   // BIN No
+      man_cd: record.man_cd,
+      bin_no: record.bigo_1,
       work_dt: workDtObj,
     });
     setActiveTab('1');
@@ -495,7 +565,7 @@ const TestResult = () => {
     });
   };
 
-  // 7) 테이블 컬럼
+  // 7) 📌 [수정] 테이블 컬럼 (재인쇄 버튼 추가)
   const columns = [
     {
       title: '작업일자',
@@ -555,10 +625,15 @@ const TestResult = () => {
       align: 'center',
       width: 80,
       render: (_, record) => {
+        // 📌 Popover 내용 수정
         const popoverContent = (
           <div style={{ textAlign: 'center' }}>
             <Button type="link" onClick={() => handleEdit(record)}>
               수정
+            </Button>
+            {/* 📌 [신규] 재인쇄 버튼 추가 */}
+            <Button type="link" onClick={() => handleRePrint(record)}>
+              재인쇄
             </Button>
             <Button type="link" danger onClick={() => handleDelete(record)}>
               삭제
@@ -581,7 +656,7 @@ const TestResult = () => {
   // 8) 화면 렌더링
   return (
     <div style={{ padding: 16 }}>
-      {/* --- 📌 [수정 1] 제목과 가상키보드 토글 영역 --- */}
+      {/* --- 제목과 가상키보드 토글 영역 (기존과 동일) --- */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2>TEST 공정 결과조회</h2>
         <Space>
@@ -594,12 +669,10 @@ const TestResult = () => {
           />
         </Space>
       </div>
-      {/* --- [수정 1] 끝 --- */}
 
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        {/* 등록 탭 */}
+        {/* 등록 탭 (기존과 동일) */}
         <TabPane tab="등록" key="1">
-          {/* --- 바코드 스캔 영역 --- */}
           <Form.Item label="바코드 스캔">
             <Row gutter={8} align="middle" wrap={false}>
               <Col flex="auto">
@@ -607,10 +680,8 @@ const TestResult = () => {
                   ref={barcodeInputRef}
                   placeholder="바코드를 스캔하세요"
                   onPressEnter={handleBarcodeScan}
-                  // --- [수정 3] Input을 state와 연결 ---
                   value={barcodeInputValue}
                   onChange={(e) => setBarcodeInputValue(e.target.value)}
-                  // --- 📌 [추가 2] 가상키보드 제어 ---
                   inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
                 />
               </Col>
@@ -627,20 +698,14 @@ const TestResult = () => {
               </Col>
             </Row>
           </Form.Item>
-          {/* --- 기존 Form 내용 --- */}
           <Form
             form={form}
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 20500, work_dt: dayjs() }} // 📌[확인] 초기 수량 20500 설정
+            initialValues={{ amt: 20500, work_dt: dayjs() }}
             style={{ maxWidth: 600 }}
-            // 📌 [제거됨] onValuesChange={handleValuesChange}
           >
-            {/* 바코드 스캔 Input이 Form의 상태와 분리되었으므로
-              숨겨진 Form.Item은 필요 없습니다.
-            */}
-
             <Form.Item
               label="작업일자"
               name="work_dt"
@@ -661,7 +726,6 @@ const TestResult = () => {
               <Input
                 name="lot_no"
                 placeholder="LOT No"
-                // --- 📌 [추가 3] 가상키보드 제어 ---
                 inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
@@ -673,7 +737,6 @@ const TestResult = () => {
               <Input
                 name="lot_no2"
                 placeholder="상위 LOT No"
-                // --- 📌 [추가 4] 가상키보드 제어 ---
                 inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
@@ -687,7 +750,6 @@ const TestResult = () => {
                 showSearch
                 placeholder="제품 검색"
                 optionFilterProp="children"
-                // --- 드롭다운 제어 로직 ---
                 open={isProductDropdownOpen}
                 onFocus={() => {
                   if (!isProductSelectReady) {
@@ -709,7 +771,6 @@ const TestResult = () => {
                   setIsProductDropdownOpen(false);
                   setIsProductSelectReady(false);
                 }}
-                // ---------------------------------
                 filterOption={(input, option) => {
                   const label = (option?.children ?? '').toString().toLowerCase();
                   return label.includes(input.toLowerCase());
@@ -730,23 +791,20 @@ const TestResult = () => {
               <Input
                 name="dev_no"
                 placeholder="장비번호"
-                // --- 📌 [추가 5] 가상키보드 제어 ---
                 inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
-                // 📌 [추가] 수동 입력을 완료했을 때(포커스 아웃) 핸들러를 연결합니다.
                 onBlur={handleDevNoBlur}
               />
             </Form.Item>
 
-            {/* --- 📌 [수정] 수량 필드 (AutoComplete) --- */}
             <Form.Item
               label="수량"
               name="amt"
               rules={[
                 { required: true, message: '수량을 입력하거나 선택하세요.' },
-                { // 📌[추가] 입력된 값이 1 이상의 숫자인지 검증
+                {
                   validator: (_, value) => {
                     const num = Number(value);
-                    if (!value) { // 값이 비어있으면 required 룰이 처리
+                    if (!value) { 
                       return Promise.resolve();
                     }
                     if (isNaN(num)) {
@@ -762,7 +820,6 @@ const TestResult = () => {
             >
               <AutoComplete
                 options={[
-                  // AutoComplete 옵션은 value를 문자열로 주는 것이 좋습니다.
                   { value: '3050' },
                   { value: '20500' },
                 ]}
@@ -770,18 +827,13 @@ const TestResult = () => {
                   option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
                 }
               >
-                {/* AutoComplete의 자식으로 Input을 넣어 inputMode를 제어합니다. */}
                 <Input
                   placeholder="수량을 입력하거나 선택하세요"
-                  // 1. 요청사항: 가상키보드 상태와 관계없이 항상 숫자 키패드 사용
                   inputMode="numeric"
-                  // 2. 요청사항: 포커스 시 필드 내용 클리어
                   onFocus={() => form.setFieldsValue({ amt: '' })}
                 />
               </AutoComplete>
             </Form.Item>
-            {/* --- 📌 [수정] 끝 --- */}
-
 
             <Form.Item
               label="BIN No"
@@ -791,40 +843,30 @@ const TestResult = () => {
               <Input
                 name="bin_no"
                 placeholder="BIN No"
-                // --- 📌 [추가 7] 가상키보드 제어 ---
                 inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
               />
             </Form.Item>
 
-            {/* --- 📌 [수정] 작업자 필드를 Select로 변경 (showSearch 제거) --- */}
             <Form.Item
               label="작업자"
               name="man_cd"
               rules={[{ required: true, message: '작업자를 선택하세요.' }]}
             >
               <Select
-                // 📌 [수정] showSearch 속성 및 관련 prop (filterOption, onSearch 등) 제거
                 placeholder="작업자 선택"
-                options={workerList} // 📌 state에서 옵션 바인딩
+                options={workerList}
               />
             </Form.Item>
-            {/* --- 📌 [수정] 끝 --- */}
-
 
             <Form.Item>
               <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
                 {editingRecord ? '수정하기' : '등록하기'}
               </Button>
               <Button onClick={() => {
-                  form.resetFields(); // 모든 필드 초기화
-                  setEditingRecord(null); // 수정 상태 초기화 추가
-                  // 📌 [수정] 폼 초기화 시 기본값 재설정 (initialValues는 마운트 시에만 적용됨)
+                  form.resetFields(); 
+                  setEditingRecord(null);
                   form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
-                  
-                  // --- [수정 4] 초기화 시 바코드 state도 비우기 ---
                   setBarcodeInputValue('');
-
-                  // 초기화 시 바코드 입력 필드로 포커스 (ON 상태일 때)
                   if (barcodeScanOn && barcodeInputRef.current) {
                     barcodeInputRef.current.focus();
                   }
@@ -833,7 +875,7 @@ const TestResult = () => {
           </Form>
         </TabPane>
 
-        {/* 조회 탭 */}
+        {/* 조회 탭 (기존과 동일) */}
         <TabPane tab="조회" key="2">
           <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
             <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
@@ -858,11 +900,41 @@ const TestResult = () => {
                   </Button>
                 </Col>
             </Row>
-
           </div>
           <Table columns={columns} dataSource={testResults} pagination={{ pageSize: 10 }} />
         </TabPane>
       </Tabs>
+
+      {/* 📌 [수정] 인쇄 확인 모달 */}
+      <Modal
+        title={modalTitle} // 📌 동적 제목으로 변경
+        open={isPrintModalVisible} 
+        onOk={handleModalClose}     
+        onCancel={handleModalClose}
+        footer={[
+          <Button key="close" onClick={handleModalClose}>
+            닫기
+          </Button>,
+          <Button key="print" type="primary" onClick={handlePrint}>
+            라벨 인쇄
+          </Button>,
+        ]}
+        width={400} 
+      >
+        {/* 📌 모달 내용 수정 */}
+        <p>
+          다음 정보가 성공적으로 {modalTitle}되었습니다.
+          {modalTitle.includes('재인쇄') && " 라벨을 인쇄하세요."}
+        </p>
+        <hr style={{ margin: '16px 0' }} />
+        
+        <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (50mm x 30mm)</h3>
+        
+        <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
+          <LabelToPrint ref={printComponentRef} data={printableData} />
+        </div>
+      </Modal>
+
     </div>
   );
 };
