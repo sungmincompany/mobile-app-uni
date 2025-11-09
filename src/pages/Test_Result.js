@@ -626,7 +626,7 @@ const TestResult = () => {
             <Button type="link" onClick={() => handleEdit(record)}>
               수정
             </Button>
-            {/* 📌 [신규] 재인쇄 버튼 추가 */}
+            {/* [신규] 재인쇄 버튼 추가 */}
             <Button type="link" onClick={() => handleRePrint(record)}>
               재인쇄
             </Button>
@@ -902,7 +902,7 @@ const TestResult = () => {
 
       {/* [수정] 인쇄 확인 모달 */}
       <Modal
-        title={modalTitle} // 📌 동적 제목
+        title={modalTitle} // 동적 제목
         open={isPrintModalVisible} 
         onOk={handleModalClose}     
         onCancel={handleModalClose}
@@ -916,7 +916,7 @@ const TestResult = () => {
         ]}
         width={400} 
       >
-        {/* 📌 동적 텍스트 */}
+        {/* 동적 텍스트 */}
         <p>
           {modalTitle.includes('완료') 
             ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`

@@ -1,5 +1,5 @@
-// src/pages/DB_Inquiry.js (다이본드 DB 실적조회)
-import React, { useState, useEffect } from 'react';
+// src/pages/DB_Inquiry.js (수정됨)
+import React, { useState, useEffect, useCallback } from 'react'; // 📌 useCallback 추가
 import { Table, DatePicker, message } from 'antd';
 import dayjs from 'dayjs';
 
@@ -12,7 +12,8 @@ const DB_Inquiry = () => {
   const v_db = "16_UR";
   const prg_cd = "110";
 
-  const fetchData = async () => {
+  // 📌 [수정] fetchData 함수를 useCallback으로 감싸줍니다.
+  const fetchData = useCallback(async () => {
     try {
       const fromParam = fromDt ? fromDt.format("YYYYMMDD") : "19990101";
       const toParam = toDt ? toDt.format("YYYYMMDD") : "20991231";
@@ -27,21 +28,14 @@ const DB_Inquiry = () => {
       console.error("실적 조회 실패:", err);
       message.error("실적 조회 중 오류가 발생했습니다.");
     }
-  };
+  }, [fromDt, toDt, v_db, prg_cd]); // 📌 fetchData가 의존하는 값들
 
   useEffect(() => {
     // 날짜가 변경될 때마다 조회
     fetchData();
-  }, [fromDt, toDt]);
+  }, [fetchData]); // 📌 [수정] 의존성 배열에 fetchData 추가
 
   const columns = [
-    /*
-    {
-      title: "제품코드",
-      dataIndex: "jepum_cd",
-      key: "jepum_cd",
-      align: "center",
-    },*/
     {
       title: "제품명",
       dataIndex: "jepum_nm",
