@@ -10,7 +10,7 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (일자 제거, 수량 포맷 적용된 버전)
+// LabelToPrint 컴포넌트 (📌 1번 짤림 문제 수정: 3열 기반 + flex 레이아웃)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
@@ -30,28 +30,51 @@ const LabelToPrint = ({ data }) => {
     overflow: 'hidden', 
   };
 
+  // 📌 [수정] table-layout: fixed 추가
   const tableStyle = { 
     width: '100%', 
     height: '100%', 
     borderCollapse: 'collapse',
+    tableLayout: 'fixed', // 📌 1-1. 렌더링 문제 해결을 위해 fixed 레이아웃 사용
   };
   
+  // 📌 [수정] 첫 번째 열(TH) 너비 고정
   const thStyle = { 
     border: '1px solid #333', 
     padding: '0.5mm 1mm', 
     fontSize: '8pt',      
     whiteSpace: 'nowrap',   
     textAlign: 'left', 
-    width: '20%',           
+    width: '20%', // 📌 1-2. 첫 번째 열(TH) 너비 고정
     backgroundColor: '#eee' 
   };
   
+  // 📌 [수정] 두 번째 열(TD) 너비 고정
   const tdStyle = { 
     border: '1px solid #333', 
     padding: '0.5mm 1mm', 
     fontSize: '9pt',        
     wordBreak: 'break-all', 
-    verticalAlign: 'middle', 
+    verticalAlign: 'middle',
+    width: '45%', // 📌 1-3. 두 번째 열(TD) 너비 고정
+  };
+
+  // 📌 [신규] 짤림 방지용 TD 스타일 (폰트 줄임, 줄바꿈 방지)
+  const tdNowrapStyle = {
+    ...tdStyle,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    fontSize: '8pt', 
+  };
+
+  // 📌 [신규] QR 코드 셀 스타일 (너비 고정)
+  const qrTdStyle = {
+    ...tdStyle,
+    width: '35%', // 📌 1-4. 세 번째 열(QR) 너비 고정
+    padding: '0.5mm',
+    textAlign: 'center',
+    verticalAlign: 'middle',
   };
 
   const qrCellContentStyle = {
@@ -59,8 +82,7 @@ const LabelToPrint = ({ data }) => {
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%', 
-    height: '100%', 
-    padding: '0.5mm', 
+    height: '100%',
   };
 
   // 3자리 콤마 포맷 적용
@@ -68,12 +90,15 @@ const LabelToPrint = ({ data }) => {
 
   return (
     <div style={labelStyle} className="label-print-container-class">
+      {/* 📌 [수정] 3열 구조 (TH, TD, QR-TD) */}
       <table style={tableStyle}>
         <tbody>
+          {/* 1, 2, 3 행 */}
           <tr>
             <th style={thStyle}>LOT</th>
-            <td style={tdStyle}>{data.lot_no}</td>
-            <td rowSpan="3" style={{ ...tdStyle, width: '35%', padding: '0' }}>
+            {/* 📌 1-5. 짤림 방지를 위해 tdNowrapStyle 적용 */}
+            <td style={tdNowrapStyle}>{data.lot_no}</td>
+            <td rowSpan="3" style={qrTdStyle}> {/* QR 셀 */}
               <div style={qrCellContentStyle}>
                 <QRCodeSVG
                   value={data.lot_no || 'N/A'}
@@ -86,21 +111,56 @@ const LabelToPrint = ({ data }) => {
           </tr>
           <tr>
             <th style={thStyle}>상위</th>
-            <td style={tdStyle}>{data.lot_no2}</td>
+            <td style={tdNowrapStyle}>{data.lot_no2}</td>
           </tr>
           <tr>
             <th style={thStyle}>제품</th>
-            <td style={tdStyle}>{data.jepum_nm}</td>
+            <td style={{...tdStyle, fontSize: '8pt'}}>{data.jepum_nm}</td> {/* 제품명은 짤릴 수 있으므로 폰트만 조정 */}
           </tr>
+
+          {/* 📌 [수정] 4행 (수량 + 장비) - colSpan=2 사용 */}
           <tr>
             <th style={thStyle}>수량</th>
-            <td style={{...tdStyle, colSpan: 2}} colSpan={2}>{formattedAmt}</td>
+            <td style={{...tdStyle, padding: 0, colSpan: 2}} colSpan={2}>
+              {/* 📌 1-6. 내부에 flex를 사용하여 4열처럼 보이게 함 */}
+              <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+                {/* 수량 데이터 (너비: 45%) */}
+                <div style={{ ...tdNowrapStyle, width: 'calc(45% + 0.5px)', border: 'none', borderRight: '1px solid #333' }}>
+                  {formattedAmt}
+                </div>
+                {/* 장비 TH (너비: 20%) */}
+                <div style={{ ...thStyle, width: '20%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
+                  장비
+                </div>
+                {/* 장비 데이터 (너비: 35%) */}
+                <div style={{ ...tdNowrapStyle, width: '35%', border: 'none', borderTop: '1px solid #333' }}>
+                  {data.dev_no || ''}
+                </div>
+              </div>
+            </td>
           </tr>
+
+          {/* 📌 [수정] 5행 (작업 + BIN) - colSpan=2 사용 */}
           <tr>
             <th style={thStyle}>작업</th>
-            <td style={{...tdStyle, colSpan: 2}} colSpan={2}>{data.man_cd}</td>
+            <td style={{...tdStyle, padding: 0, colSpan: 2}} colSpan={2}>
+              {/* 📌 1-7. 내부에 flex를 사용하여 4열처럼 보이게 함 */}
+              <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+                {/* 작업 데이터 (너비: 45%) */}
+                <div style={{ ...tdNowrapStyle, width: 'calc(45% + 0.5px)', border: 'none', borderRight: '1px solid #333' }}>
+                  {data.man_cd}
+                </div>
+                {/* BIN TH (너비: 20%) */}
+                <div style={{ ...thStyle, width: '20%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
+                  BIN
+                </div>
+                {/* BIN 데이터 (너비: 35%) */}
+                <div style={{ ...tdNowrapStyle, width: '35%', border: 'none', borderTop: '1px solid #333' }}>
+                  {data.bin_no || ''}
+                </div>
+              </div>
+            </td>
           </tr>
-          {/* 일자 행은 제거됨 */}
         </tbody>
       </table>
     </div>
@@ -165,7 +225,9 @@ const TestResult = () => {
       jepum_nm: jepum_nm, 
       amt: record.amt,
       man_cd: record.man_cd,
-      work_dt: displayDate, // (비록 라벨엔 안 나오지만 데이터는 전달)
+      work_dt: displayDate,
+      dev_no: record.dev_no,   // (이전 수정에서 추가됨)
+      bin_no: record.bigo_1, // (이전 수정에서 추가됨)
     });
   };
 
@@ -337,6 +399,7 @@ const TestResult = () => {
   }, [v_db]); 
 
   // 3) Test Result 조회
+  // 📌 2-1. [확인] 이 함수가 호출하는 API가 'dev_no'와 'lot_no2'를 반환하는지 확인해야 합니다.
   const fetchTestResults = async (startDate, endDate) => {
     try {
       const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
@@ -368,8 +431,10 @@ const TestResult = () => {
       };
 
       const product = productList.find(p => p.jepum_cd === values.jepum_cd);
+      
       const dataForPrint = {
-        ...values, work_dt: work_dt, 
+        ...values, 
+        work_dt: work_dt, 
         jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
 
@@ -382,7 +447,7 @@ const TestResult = () => {
           message.error(`등록 실패: ${resData.error}`);
         } else {
           message.success('등록 성공!'); 
-          fetchTestResults(fromDt, toDt); 
+          fetchTestResults(fromDt, toDt); // 📌 2-2. [확인] 등록 후 데이터를 다시 불러옵니다.
           setModalTitle('등록 완료'); 
           setPrintableData(dataForPrint); // 모달 열기
           form.resetFields(); 
@@ -397,7 +462,7 @@ const TestResult = () => {
           message.error(`수정 실패: ${resData.error}`);
         } else {
           message.success('수정 성공!');
-          fetchTestResults(fromDt, toDt);
+          fetchTestResults(fromDt, toDt); // 📌 2-3. [확인] 수정 후 데이터를 다시 불러옵니다.
           setModalTitle('수정 완료');
           setPrintableData(dataForPrint); // 모달 열기
           form.resetFields(); 
@@ -414,7 +479,8 @@ const TestResult = () => {
     message.error('모든 항목을 올바르게 입력해주세요!');
   };
 
-  // 5) 수정/삭제 (변경 없음)
+  // 5) 수정
+  // 📌 2-4. [확인] 'record'에 dev_no, lot_no2가 있어야 폼에 채워집니다.
   const handleEdit = (record) => {
     setEditingRecord(record);
     let workDtObj = null;
@@ -423,13 +489,19 @@ const TestResult = () => {
       workDtObj = dayjs(`${year}-${month}-${day}`, 'YYYY-MM-DD');
     }
     form.setFieldsValue({
-      lot_no: record.lot_no, lot_no2: record.lot_no2, dev_no: record.dev_no,
-      jepum_cd: record.jepum_cd, amt: record.amt, man_cd: record.man_cd,
-      bin_no: record.bigo_1, work_dt: workDtObj,
+      lot_no: record.lot_no, 
+      lot_no2: record.lot_no2, // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
+      dev_no: record.dev_no,   // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
+      jepum_cd: record.jepum_cd, 
+      amt: record.amt, 
+      man_cd: record.man_cd,
+      bin_no: record.bigo_1, // (BIN No는 bigo_1 필드를 사용)
+      work_dt: workDtObj,
     });
     setActiveTab('1');
   };
 
+  // 6) 삭제
   const handleDelete = (record) => {
     confirm({
       title: '해당 실적을 삭제하시겠습니까?', okText: '예', cancelText: '아니오',
@@ -452,7 +524,7 @@ const TestResult = () => {
     });
   };
 
-  // 7) 테이블 컬럼 (변경 없음)
+  // 7) 테이블 컬럼
   const columns = [
     {
       title: '작업일자', dataIndex: 'work_dt', key: 'work_dt', align: 'center', width: 100,
@@ -460,6 +532,7 @@ const TestResult = () => {
     },
     {
       title: 'LOT 정보', dataIndex: 'lot_no', key: 'lot_info', align: 'center', width: 120,
+      // 📌 2-5. [확인] 'record.lot_no2'를 사용하도록 설정되어 있습니다.
       render: (value, record) => (<><div>{value}</div><div style={{ color: 'gray' }}>{record.lot_no2}</div></>),
     },
     {
@@ -471,9 +544,12 @@ const TestResult = () => {
     },
     {
       title: '작업정보', dataIndex: 'amt', key: 'work_info', align: 'center', width: 140,
+      // 📌 2-6. [확인] 'record.dev_no'를 사용하도록 설정되어 있습니다.
       render: (value, record) => (<>
-        <div>수량: {value}</div><div>장비: {record.dev_no}</div>
-        <div>작업자: {record.man_cd}</div><div>BIN: {record.bigo_1}</div>
+        <div>수량: {value}</div>
+        <div>장비: {record.dev_no}</div>
+        <div>작업자: {record.man_cd}</div>
+        <div>BIN: {record.bigo_1}</div>
       </>),
     },
     {
@@ -526,9 +602,8 @@ const TestResult = () => {
       {/* --- 2. 탭 (no-print 유지) --- */}
       <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
         
-        {/* 📌 [수정] TabPane 내부의 최상위 요소에 'no-print' 클래스 추가 */}
         <TabPane tab="등록" key="1">
-          <div className="no-print"> {/* 👈 여기! */}
+          <div className="no-print">
             <Form.Item label="바코드 스캔">
               <Row gutter={8} align="middle" wrap={false}>
                 <Col flex="auto">
@@ -635,9 +710,8 @@ const TestResult = () => {
           </div>
         </TabPane>
 
-        {/* 📌 [수정] TabPane 내부의 최상위 요소에 'no-print' 클래스 추가 */}
         <TabPane tab="조회" key="2">
-          <div className="no-print"> {/* 👈 여기! */}
+          <div className="no-print">
             <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
               <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
                 <Col span={9}><DatePicker value={fromDt} format="YYYY-MM-DD" onChange={(date) => setFromDt(date)} /></Col>
