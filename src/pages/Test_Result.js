@@ -1,9 +1,9 @@
-// src/pages/Test_Result.js (수정됨)
 import React, { useState, useEffect, useRef } from 'react';
-// 📌 [수정] 'InputNumber'를 import 목록에서 제거
-import { Tabs, Form, Input, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete } from 'antd';
+import {
+  Tabs, Form, Input, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete
+} from 'antd';
 import dayjs from 'dayjs';
-import { QRCodeSVG } from 'qrcode.react'; 
+import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
 
 const { TabPane } = Tabs;
@@ -83,7 +83,8 @@ const LabelToPrint = React.forwardRef(({ data }, ref) => {
               <th style={thStyle}>수량</th>
               <td style={tdStyle}>{data.amt}</td>
             </tr>
-              <tr>
+            {/* 📌 [수정] = 가 빠졌던 오타 수정 */}
+            <tr>
               <th style={thStyle}>작업</th>
               <td style={tdStyle}>{data.man_cd}</td>
             </tr>
@@ -98,12 +99,9 @@ const LabelToPrint = React.forwardRef(({ data }, ref) => {
   );
 });
 
-// 📌 [수정] 컴포넌트 이름은 'TestResult' (언더스코어 없음)
+// 컴포넌트 이름 (PascalCase)
 const TestResult = () => {
-  // 1) Form, State 초기화
   const [form] = Form.useForm();
-
-  // (기존 상태값들...)
   const [productList, setProductList] = useState([]);
   const [workerList, setWorkerList] = useState([]);
   const [testResults, setTestResults] = useState([]);
@@ -122,17 +120,13 @@ const TestResult = () => {
   const [isProductSelectReady, setIsProductSelectReady] = useState(false);
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
-  // [신규] 인쇄 모달을 위한 State
   const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const [printableData, setPrintableData] = useState(null);
-  
-  // [신규] 모달 제목을 위한 State
   const [modalTitle, setModalTitle] = useState('등록/수정 완료');
-
-  // [신규] 인쇄할 컴포넌트를 참조하기 위한 Ref
+  const [openPopoverKey, setOpenPopoverKey] = useState(null);
   const printComponentRef = useRef(null);
 
-  // [신규] react-to-print 훅 설정
+  // react-to-print 훅 설정
   const handlePrint = useReactToPrint({
     content: () => printComponentRef.current,
     pageStyle: `
@@ -157,9 +151,12 @@ const TestResult = () => {
         }
       }
     `,
+    onAfterPrint: () => {
+      console.log('인쇄 작업 완료 또는 취소됨');
+    },
   });
 
-  // [신규] 모달 닫기 핸들러
+  // 모달 닫기 핸들러
   const handleModalClose = () => {
     setIsPrintModalVisible(false);
     setPrintableData(null);
@@ -170,7 +167,7 @@ const TestResult = () => {
     }
   };
 
-  // [신규] 재인쇄 버튼 클릭 핸들러
+  // 재인쇄 버튼 클릭 핸들러
   const handleRePrint = (record) => {
     const product = productList.find(p => p.jepum_cd === record.jepum_cd);
     const jepum_nm = product ? product.jepum_nm : record.jepum_cd;
@@ -191,6 +188,11 @@ const TestResult = () => {
     
     setModalTitle('라벨 재인쇄');
     setIsPrintModalVisible(true);
+  };
+
+  // Popover 열기/닫기 핸들러
+  const handlePopoverChange = (visible, key) => {
+    setOpenPopoverKey(visible ? key : null);
   };
 
 
@@ -216,7 +218,8 @@ const TestResult = () => {
     }
   };
 
-  // --- 유휴 상태 감지 ---
+
+  // --- 유휴 상태 감지 및 자동 포커스 로직 ---
   useEffect(() => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
@@ -250,7 +253,7 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- 바코드 스캔 처리 ---
+  // --- 바코드 스캔 처리 핸들러 ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
     if (barcodeValue) {
@@ -552,7 +555,7 @@ const TestResult = () => {
     });
   };
 
-  // 7) [수정] 테이블 컬럼 (재인쇄 버튼 추가)
+  // 7) [수정] 테이블 컬럼 (Popover 제어 로직 추가)
   const columns = [
     {
       title: '작업일자',
@@ -614,14 +617,22 @@ const TestResult = () => {
       render: (_, record) => {
         const popoverContent = (
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-            <Button type="link" onClick={() => handleEdit(record)}>
+            <Button type="link" onClick={() => {
+              handleEdit(record);
+              setOpenPopoverKey(null); // Popover 닫기
+            }}>
               수정
             </Button>
-            {/* [신규] 재인쇄 버튼 추가 */}
-            <Button type="link" onClick={() => handleRePrint(record)}>
+            <Button type="link" onClick={() => {
+              handleRePrint(record);
+              setOpenPopoverKey(null); // Popover 닫기
+            }}>
               재인쇄
             </Button>
-            <Button type="link" danger onClick={() => handleDelete(record)}>
+            <Button type="link" danger onClick={() => {
+              setOpenPopoverKey(null); // Popover 닫기
+              handleDelete(record);
+            }}>
               삭제
             </Button>
           </div>
@@ -631,6 +642,9 @@ const TestResult = () => {
           <Popover
             content={popoverContent}
             trigger="click"
+            // 📌 Popover 상태 제어
+            open={openPopoverKey === record.key}
+            onOpenChange={(visible) => handlePopoverChange(visible, record.key)}
           >
             <Button>+</Button>
           </Popover>
@@ -891,23 +905,14 @@ const TestResult = () => {
         </TabPane>
       </Tabs>
 
-      {/* [수정] 인쇄 확인 모달 */}
+      {/* 📌 [수정] 인쇄 확인 모달 (footer prop 제거) */}
       <Modal
-        title={modalTitle} // 동적 제목
+        title={modalTitle} 
         open={isPrintModalVisible} 
-        onOk={handleModalClose}     
         onCancel={handleModalClose}
-        footer={[
-          <Button key="close" onClick={handleModalClose}>
-            닫기
-          </Button>,
-          <Button key="print" type="primary" onClick={handlePrint}>
-            라벨 인쇄
-          </Button>,
-        ]}
         width={400} 
+        footer={null} // 📌 footer를 null로 설정
       >
-        {/* 동적 텍스트 */}
         <p>
           {modalTitle.includes('완료') 
             ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
@@ -918,8 +923,24 @@ const TestResult = () => {
         
         <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (50mm x 30mm)</h3>
         
+        {/* 📌 [중요] 모달이 열려있을 때(isPrintModalVisible=true)만 
+          LabelToPrint 컴포넌트를 렌더링합니다.
+          이렇게 해야 printComponentRef.current가 항상 유효합니다.
+        */}
         <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
-          <LabelToPrint ref={printComponentRef} data={printableData} />
+          {isPrintModalVisible && (
+            <LabelToPrint ref={printComponentRef} data={printableData} />
+          )}
+        </div>
+
+        {/* 📌 [신규] 모달 내부에 버튼 직접 배치 */}
+        <div style={{ textAlign: 'right', marginTop: '24px' }}>
+          <Button key="close" onClick={handleModalClose} style={{ marginRight: 8 }}>
+            닫기
+          </Button>
+          <Button key="print" type="primary" onClick={handlePrint}>
+            라벨 인쇄
+          </Button>
         </div>
       </Modal>
 
@@ -927,5 +948,4 @@ const TestResult = () => {
   );
 };
 
-// 📌 [수정] export default 이름 변경 (Test_Result -> TestResult)
 export default TestResult;
