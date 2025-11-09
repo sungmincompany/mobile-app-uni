@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react'; // 📌 useCall
 import { Table, DatePicker, message } from 'antd';
 import dayjs from 'dayjs';
 
-// 📌 [수정] 컴포넌트 이름을 VI_Inquiry로 변경
-const VI_Inquiry = () => {
+// 📌 [수정] 컴포넌트 이름 변경 (DB_Inquiry -> ViInquiry)
+const ViInquiry = () => {
   const [data, setData] = useState([]);
   const [fromDt, setFromDt] = useState(dayjs().startOf('month'));
   const [toDt, setToDt] = useState(dayjs());
@@ -31,7 +31,6 @@ const VI_Inquiry = () => {
   }, [fromDt, toDt, v_db, prg_cd]); // 📌 fetchData가 의존하는 값들
 
   useEffect(() => {
-    // 날짜가 변경될 때마다 조회
     fetchData();
   }, [fetchData]); // 📌 [수정] 의존성 배열에 fetchData 추가
 
@@ -81,5 +80,5 @@ const VI_Inquiry = () => {
   );
 };
 
-// 📌 [수정] export default 이름을 VI_Inquiry로 변경
-export default VI_Inquiry;
+// 📌 [수정] export default 이름 변경
+export default ViInquiry;

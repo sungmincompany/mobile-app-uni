@@ -1,7 +1,6 @@
-// src/pages/Test_Result.js
-
+// src/pages/Test_Result.js (수정됨)
 import React, { useState, useEffect, useRef } from 'react';
-// 📌 [수정] 'InputNumber'를 import 목록에서 제거했습니다.
+// 📌 [수정] 'InputNumber'를 import 목록에서 제거
 import { Tabs, Form, Input, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete } from 'antd';
 import dayjs from 'dayjs';
 import { QRCodeSVG } from 'qrcode.react'; 
@@ -99,7 +98,7 @@ const LabelToPrint = React.forwardRef(({ data }, ref) => {
   );
 });
 
-
+// 📌 [수정] 컴포넌트 이름은 'TestResult' (언더스코어 없음)
 const TestResult = () => {
   // 1) Form, State 초기화
   const [form] = Form.useForm();
@@ -165,39 +164,32 @@ const TestResult = () => {
     setIsPrintModalVisible(false);
     setPrintableData(null);
     
-    // '수정' 작업이 완료되어 모달이 뜬 경우에만 탭을 변경
     if (editingRecord) {
       setActiveTab('2');
-      setEditingRecord(null); // 수정 상태 초기화
+      setEditingRecord(null); 
     }
   };
 
   // [신규] 재인쇄 버튼 클릭 핸들러
   const handleRePrint = (record) => {
-    // 1. 제품명 찾기
     const product = productList.find(p => p.jepum_cd === record.jepum_cd);
     const jepum_nm = product ? product.jepum_nm : record.jepum_cd;
 
-    // 2. 날짜 형식 변환 (YYYYMMDD -> YYYY-MM-DD)
     let displayDate = record.work_dt;
     if (record.work_dt && record.work_dt.length === 8) {
       displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(4, 6)}-${record.work_dt.slice(6, 8)}`;
     }
 
-    // 3. 인쇄할 데이터 세팅
     setPrintableData({
       lot_no: record.lot_no,
       lot_no2: record.lot_no2,
-      jepum_nm: jepum_nm, // 제품명
+      jepum_nm: jepum_nm, 
       amt: record.amt,
       man_cd: record.man_cd,
-      work_dt: displayDate, // 포맷된 날짜
+      work_dt: displayDate, 
     });
     
-    // 4. 모달 제목 설정
     setModalTitle('라벨 재인쇄');
-    
-    // 5. 모달 띄우기
     setIsPrintModalVisible(true);
   };
 
@@ -224,8 +216,7 @@ const TestResult = () => {
     }
   };
 
-
-  // --- 유휴 상태 감지 및 자동 포커스 로직 ---
+  // --- 유휴 상태 감지 ---
   useEffect(() => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
@@ -259,7 +250,7 @@ const TestResult = () => {
   }, [barcodeScanOn, activeTab]);
 
 
-  // --- 바코드 스캔 처리 핸들러 ---
+  // --- 바코드 스캔 처리 ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
     if (barcodeValue) {
@@ -936,4 +927,5 @@ const TestResult = () => {
   );
 };
 
+// 📌 [수정] export default 이름 변경 (Test_Result -> TestResult)
 export default TestResult;

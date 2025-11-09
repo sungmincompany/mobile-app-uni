@@ -3,12 +3,12 @@ import React, { useState, useEffect, useCallback } from 'react'; // 📌 useCall
 import { Table, DatePicker, message } from 'antd';
 import dayjs from 'dayjs';
 
-const DB_Inquiry = () => {
+// 📌 [수정] 컴포넌트 이름 변경 (DB_Inquiry -> DbInquiry)
+const DbInquiry = () => {
   const [data, setData] = useState([]);
   const [fromDt, setFromDt] = useState(dayjs().startOf('month'));
   const [toDt, setToDt] = useState(dayjs());
 
-  // prg_cd = 110 (다이본드), DB 스키마 = "16_UR" (예시)
   const v_db = "16_UR";
   const prg_cd = "110";
 
@@ -31,7 +31,6 @@ const DB_Inquiry = () => {
   }, [fromDt, toDt, v_db, prg_cd]); // 📌 fetchData가 의존하는 값들
 
   useEffect(() => {
-    // 날짜가 변경될 때마다 조회
     fetchData();
   }, [fetchData]); // 📌 [수정] 의존성 배열에 fetchData 추가
 
@@ -81,4 +80,5 @@ const DB_Inquiry = () => {
   );
 };
 
-export default DB_Inquiry;
+// 📌 [수정] export default 이름 변경
+export default DbInquiry;

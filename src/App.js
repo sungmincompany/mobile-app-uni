@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js (수정됨)
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -6,12 +6,15 @@ import TappingProcessWork from './pages/TappingProcessWork';
 import Header from './components/Header';
 import AlarmHistory from './pages/AlarmHistory';
 import Maintainance from './pages/Maintainance';
-import DB_Inquiry from './pages/DB_Inquiry';
-import WB_Inquiry from './pages/WB_Inquiry';
-import Mold_Inquiry from './pages/Mold_Inquiry';
-import Test_Inquiry from './pages/Test_Inquiry';
-import VI_Inquiry from './pages/VI_Inquiry';
-import Test_Result from './pages/Test_Result';
+
+// 📌 [수정] import 이름에서 '_' 제거 (예: DB_Inquiry -> DbInquiry)
+import DbInquiry from './pages/DB_Inquiry';
+import WbInquiry from './pages/WB_Inquiry';
+import MoldInquiry from './pages/Mold_Inquiry';
+import TestInquiry from './pages/Test_Inquiry';
+import ViInquiry from './pages/VI_Inquiry';
+import TestResult from './pages/Test_Result'; // 📌 Test_Result -> TestResult
+
 import './App.css';
 
 import { Layout } from 'antd';
@@ -28,7 +31,7 @@ const App = () => {
 
   return (
     <Router>
-      <Layout style={{ minHeight: '100vh' }}> {/* 여백 제거 */}
+      <Layout style={{ minHeight: '100vh' }}>
         <AntHeader style={{ padding: 0, border: 'none', height: '48px' }}>
           <Header collapsed={collapsed} toggleCollapsed={toggleCollapsed} s />
         </AntHeader>
@@ -36,7 +39,7 @@ const App = () => {
         <Layout>
           <Sider
             collapsed={collapsed}
-            width="100vw"  // 전체 너비로 설정
+            width="100vw"
             collapsedWidth="100vw"
             style={{
               backgroundColor: '#fff',
@@ -45,7 +48,7 @@ const App = () => {
               top: '48px',
               height: '100%',
               zIndex: 10,
-              transition: 'transform 0.25s ease', // Smooth slide-in/out
+              transition: 'transform 0.25s ease',
               transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
             }}
           >
@@ -56,12 +59,15 @@ const App = () => {
             <Routes>
               <Route path="/Maintainance" element={<Maintainance />} />
               <Route path="/AlarmHistory" element={<AlarmHistory />} />
-              <Route path="/DB_Inquiry" element={<DB_Inquiry />} />
-              <Route path="/WB_Inquiry" element={<WB_Inquiry />} />
-              <Route path="/Mold_Inquiry" element={<Mold_Inquiry />} />
-              <Route path="/Test_Inquiry" element={<Test_Inquiry />} />
-              <Route path="/VI_Inquiry" element={<VI_Inquiry />} />
-              <Route path="/Test_Result" element={<Test_Result />} />
+              
+              {/* 📌 [수정] element={} 안의 컴포넌트 이름에서 '_' 제거 */}
+              <Route path="/DB_Inquiry" element={<DbInquiry />} />
+              <Route path="/WB_Inquiry" element={<WbInquiry />} />
+              <Route path="/Mold_Inquiry" element={<MoldInquiry />} />
+              <Route path="/Test_Inquiry" element={<TestInquiry />} />
+              <Route path="/VI_Inquiry" element={<ViInquiry />} />
+              <Route path="/Test_Result" element={<TestResult />} />
+              
               <Route path="/TappingProcessWork" element={<TappingProcessWork />} />
 
             </Routes>
