@@ -14,9 +14,9 @@ code {
 
 /* --- 📌 [수정] CSS 인쇄 규칙 (v20 - 최종본) --- */
 
-/* 1. 용지 크기 정의 (변경 없음) */
+/* 1. 용지 크기 정의: 길이 80mm, 폭 24mm로 설정 */
 @page {
-  size: 50mm 30mm;
+  size: 80mm 24mm; /* 👈 수정: 가로 길이를 80mm로 길게 설정 */
   margin: 0;
 }
 
@@ -78,13 +78,13 @@ code {
       display: none !important;
   }
 
-  /* 8. 💥 라벨을 (0,0)에 강제 배치합니다. */
+/* 8. 💥 라벨을 (0,0)에 강제 배치합니다. */
   .label-print-container-class {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 50mm !important;
-    height: 30mm !important;
+    width: 80mm !important; /* 👈 수정: 디자인의 실제 폭(테이프 길이 방향) */
+    height: 24mm !important; /* 👈 수정: 디자인의 실제 높이(테이프 폭 방향) */
     border: none !important;
     padding: 0 !important;
     margin: 0 !important;

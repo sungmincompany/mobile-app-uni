@@ -16,62 +16,61 @@ const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
   const labelStyle = {
-    width: '50mm',
-    height: '30mm',
-    padding: '0', 
+    width: '80mm',  // 👈 80mm 길이 (테이프 길이에 해당)
+    height: '24mm', // 👈 24mm 폭 (테이프 폭에 해당)
+    padding: '0',
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
-    fontSize: '7pt', 
-    lineHeight: 1.2,
-    position: 'relative', 
-    border: '1px dashed #999', 
+    fontSize: '6pt',
+    lineHeight: 1.1,
+    position: 'relative',
+    border: '1px dashed #999',
     backgroundColor: 'white',
     color: 'black',
-    overflow: 'hidden', 
+    overflow: 'hidden',
   };
 
-  // 📌 [수정] table-layout: fixed 추가
-  const tableStyle = { 
-    width: '100%', 
-    height: '100%', 
+  const tableStyle = {
+    width: '100%',
+    height: '100%',
     borderCollapse: 'collapse',
-    tableLayout: 'fixed', // 📌 1-1. 렌더링 문제 해결을 위해 fixed 레이아웃 사용
-  };
-  
-  // 📌 [수정] 첫 번째 열(TH) 너비 고정
-  const thStyle = { 
-    border: '1px solid #333', 
-    padding: '0.5mm 1mm', 
-    fontSize: '8pt',      
-    whiteSpace: 'nowrap',   
-    textAlign: 'left', 
-    width: '20%', // 📌 1-2. 첫 번째 열(TH) 너비 고정
-    backgroundColor: '#eee' 
-  };
-  
-  // 📌 [수정] 두 번째 열(TD) 너비 고정
-  const tdStyle = { 
-    border: '1px solid #333', 
-    padding: '0.5mm 1mm', 
-    fontSize: '9pt',        
-    wordBreak: 'break-all', 
-    verticalAlign: 'middle',
-    width: '45%', // 📌 1-3. 두 번째 열(TD) 너비 고정
+    tableLayout: 'fixed',
   };
 
-  // 📌 [신규] 짤림 방지용 TD 스타일 (폰트 줄임, 줄바꿈 방지)
+  // 📌 [재수정] TH 너비
+  const thStyle = {
+    border: '1px solid #333',
+    padding: '0.2mm 0.5mm',
+    fontSize: '6pt',
+    whiteSpace: 'nowrap',
+    textAlign: 'left',
+    width: '12%', // 👈 너비 비율을 줄임 (80mm 기준)
+    backgroundColor: '#eee'
+  };
+
+  // 📌 [재수정] TD 너비
+  const tdStyle = {
+    border: '1px solid #333',
+    padding: '0.2mm 0.5mm',
+    fontSize: '6pt',
+    wordBreak: 'break-all',
+    verticalAlign: 'middle',
+    width: '43%', // 👈 너비 비율 조정
+  };
+
+  // 📌 [재수정] 짤림 방지용 TD 스타일
   const tdNowrapStyle = {
     ...tdStyle,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    fontSize: '8pt', 
+    fontSize: '6pt',
   };
 
-  // 📌 [신규] QR 코드 셀 스타일 (너비 고정)
+  // 📌 [재수정] QR 코드 셀 스타일 (너비를 늘려 QR을 위한 공간 확보)
   const qrTdStyle = {
     ...tdStyle,
-    width: '35%', // 📌 1-4. 세 번째 열(QR) 너비 고정
+    width: '45%', // 👈 QR 코드 너비 비율 (가장 넓게)
     padding: '0.5mm',
     textAlign: 'center',
     verticalAlign: 'middle',
@@ -81,83 +80,80 @@ const LabelToPrint = ({ data }) => {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%', 
+    width: '100%',
     height: '100%',
   };
+
+  // 📌 [재수정] QR 코드 크기를 24mm 높이 안에 맞춤
+  const qrSize = 18; // 18mm (24mm 높이 안에 들어가도록)
 
   // 3자리 콤마 포맷 적용
   const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
 
   return (
     <div style={labelStyle} className="label-print-container-class">
-      {/* 📌 [수정] 3열 구조 (TH, TD, QR-TD) */}
       <table style={tableStyle}>
         <tbody>
-          {/* 1, 2, 3 행 */}
+          {/* 1행 (LOT NO) */}
           <tr>
             <th style={thStyle}>LOT</th>
-            {/* 📌 1-5. 짤림 방지를 위해 tdNowrapStyle 적용 */}
             <td style={tdNowrapStyle}>{data.lot_no}</td>
-            <td rowSpan="3" style={qrTdStyle}> {/* QR 셀 */}
-              <div style={qrCellContentStyle}>
+            {/* QR 셀을 5행으로 확장하고 텍스트 추가 */}
+            <td rowSpan="5" style={qrTdStyle}>
+              <div style={{ ...qrCellContentStyle, flexDirection: 'column' }}>
                 <QRCodeSVG
                   value={data.lot_no || 'N/A'}
-                  size={50} 
-                  style={{ width: '13mm', height: '13mm' }}
+                  size={qrSize * 3.78}
+                  style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
                   level="M"
                 />
+                <div style={{ marginTop: '0.5mm', fontSize: '6pt', fontWeight: 'bold' }}>
+                  {data.lot_no || 'N/A'}
+                </div>
               </div>
             </td>
           </tr>
+          {/* 2행 (상위) */}
           <tr>
             <th style={thStyle}>상위</th>
             <td style={tdNowrapStyle}>{data.lot_no2}</td>
           </tr>
+          {/* 3행 (제품) */}
           <tr>
             <th style={thStyle}>제품</th>
-            <td style={{...tdStyle, fontSize: '8pt'}}>{data.jepum_nm}</td> {/* 제품명은 짤릴 수 있으므로 폰트만 조정 */}
+            <td style={{ ...tdStyle, fontSize: '6pt' }}>{data.jepum_nm}</td>
           </tr>
-
-          {/* 📌 [수정] 4행 (수량 + 장비) - colSpan=2 사용 */}
+          {/* 4행 (수량 + 장비) */}
           <tr>
             <th style={thStyle}>수량</th>
-            <td style={{...tdStyle, padding: 0, colSpan: 2}} colSpan={2}>
-              {/* 📌 1-6. 내부에 flex를 사용하여 4열처럼 보이게 함 */}
+            <td style={{ ...tdStyle, padding: 0 }} colSpan={1}>
               <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                {/* 수량 데이터 (너비: 45%) */}
-                <div style={{ ...tdNowrapStyle, width: 'calc(45% + 0.5px)', border: 'none', borderRight: '1px solid #333' }}>
+                <div style={{ ...tdNowrapStyle, width: '45%', border: 'none', borderRight: '1px solid #333' }}>
                   {formattedAmt}
                 </div>
-                {/* 장비 TH (너비: 20%) */}
-                <div style={{ ...thStyle, width: '20%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
+                <th style={{ ...thStyle, width: '25%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
                   장비
-                </div>
-                {/* 장비 데이터 (너비: 35%) */}
-                <div style={{ ...tdNowrapStyle, width: '35%', border: 'none', borderTop: '1px solid #333' }}>
+                </th>
+                <td style={{ ...tdNowrapStyle, width: '30%', border: 'none', borderTop: '1px solid #333' }}>
                   {data.dev_no || ''}
-                </div>
+                </td>
               </div>
             </td>
           </tr>
-
-          {/* 📌 [수정] 5행 (작업 + BIN) - colSpan=2 사용 */}
+          {/* 5행 (작업 + BIN) */}
           <tr>
             <th style={thStyle}>작업</th>
-            <td style={{...tdStyle, padding: 0, colSpan: 2}} colSpan={2}>
-              {/* 📌 1-7. 내부에 flex를 사용하여 4열처럼 보이게 함 */}
+            <td style={{ ...tdStyle, padding: 0 }} colSpan={1}>
               <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                {/* 작업 데이터 (너비: 45%) */}
-                <div style={{ ...tdNowrapStyle, width: 'calc(45% + 0.5px)', border: 'none', borderRight: '1px solid #333' }}>
+                <div style={{ ...tdNowrapStyle, width: '45%', border: 'none', borderRight: '1px solid #333' }}>
                   {data.man_cd}
                 </div>
-                {/* BIN TH (너비: 20%) */}
-                <div style={{ ...thStyle, width: '20%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
+                <th style={{ ...thStyle, width: '25%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
                   BIN
-                </div>
-                {/* BIN 데이터 (너비: 35%) */}
-                <div style={{ ...tdNowrapStyle, width: '35%', border: 'none', borderTop: '1px solid #333' }}>
+                </th>
+                <td style={{ ...tdNowrapStyle, width: '30%', border: 'none', borderTop: '1px solid #333' }}>
                   {data.bin_no || ''}
-                </div>
+                </td>
               </div>
             </td>
           </tr>
@@ -181,7 +177,7 @@ const TestResult = () => {
   const [toDt, setToDt] = useState(dayjs());
   const [editingRecord, setEditingRecord] = useState(null);
   const [activeTab, setActiveTab] = useState('1');
-  const v_db = '16_UR'; 
+  const v_db = '16_UR';
   const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false);
   const [barcodeScanOn, setBarcodeScanOn] = useState(true);
   const barcodeInputRef = useRef(null);
@@ -203,10 +199,10 @@ const TestResult = () => {
 
   // 모달 닫기 핸들러
   const handleModalClose = () => {
-    setPrintableData(null); 
+    setPrintableData(null);
     if (editingRecord) {
       setActiveTab('2');
-      setEditingRecord(null); 
+      setEditingRecord(null);
     }
   };
 
@@ -219,10 +215,10 @@ const TestResult = () => {
       displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(4, 6)}-${record.work_dt.slice(6, 8)}`;
     }
     setModalTitle('라벨 재인쇄');
-    setPrintableData({ 
+    setPrintableData({
       lot_no: record.lot_no,
       lot_no2: record.lot_no2,
-      jepum_nm: jepum_nm, 
+      jepum_nm: jepum_nm,
       amt: record.amt,
       man_cd: record.man_cd,
       work_dt: displayDate,
@@ -235,12 +231,12 @@ const TestResult = () => {
   const handlePopoverChange = (visible, key) => {
     setOpenPopoverKey(visible ? key : null);
   };
-  
+
   // '장비번호' 필드의 onBlur(포커스 아웃) 이벤트 핸들러
   const handleDevNoBlur = () => {
     const allValues = form.getFieldsValue();
     const newDevNo = allValues.dev_no;
-    const changedValues = { dev_no: newDevNo }; 
+    const changedValues = { dev_no: newDevNo };
     handleValuesChange(changedValues, allValues);
   };
 
@@ -250,8 +246,8 @@ const TestResult = () => {
       const newDevNo = changedValues.dev_no;
       if (newDevNo && !allValues.lot_no) {
         const now = dayjs();
-        const mmdd = now.format('MMDD'); 
-        const hhmm = now.format('HHMM'); 
+        const mmdd = now.format('MMDD');
+        const hhmm = now.format('HHMM');
         const generatedLotNo = `${mmdd}-${hhmm}-${newDevNo}`;
         form.setFieldsValue({ lot_no: generatedLotNo });
       }
@@ -264,7 +260,7 @@ const TestResult = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
       if (!barcodeScanOn || activeTab !== '1') return;
-      setIdleCountdown(10); 
+      setIdleCountdown(10);
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown(prev => Math.max(0, prev - 1));
       }, 1000);
@@ -272,7 +268,7 @@ const TestResult = () => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current.input) {
           barcodeInputRef.current.focus();
         }
-      }, 10000); 
+      }, 10000);
     };
     if (barcodeScanOn && activeTab === '1') {
       const events = ['mousedown', 'touchstart', 'keydown'];
@@ -299,14 +295,14 @@ const TestResult = () => {
       const matchSingle = barcodeValue.match(regexSingle);
       const fieldNames = { lot_no2: '상위 LOT No', dev_no: '장비번호', bin_no: 'BIN No' };
       let changedData = {};
-      let allData = form.getFieldsValue(); 
+      let allData = form.getFieldsValue();
 
       if (matchPlus) {
-        let value1 = matchPlus[1], value2 = matchPlus[2]; 
+        let value1 = matchPlus[1], value2 = matchPlus[2];
         const field1 = matchPlus[3], field2 = matchPlus[4];
         const fieldName1 = fieldNames[field1] || field1, fieldName2 = fieldNames[field2] || field2;
         if (field1 === 'lot_no2') {
-          value1 = await fetchProductInfoByLotNo2(value1); 
+          value1 = await fetchProductInfoByLotNo2(value1);
           message.success(`${fieldName2} '${value2}' (으)로 설정되었습니다.`);
         } else if (field2 === 'lot_no2') {
           value2 = await fetchProductInfoByLotNo2(value2);
@@ -331,7 +327,7 @@ const TestResult = () => {
       }
 
       form.setFieldsValue(changedData);
-      allData = form.getFieldsValue(); 
+      allData = form.getFieldsValue();
       if (changedData.hasOwnProperty('dev_no')) {
         handleValuesChange(changedData, allData);
       }
@@ -348,7 +344,7 @@ const TestResult = () => {
       if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
       const data = await res.json();
       if (data && data.length > 0) {
-        const product = data[0]; 
+        const product = data[0];
         if (product.jepum_cd) {
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
           message.success(`제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`);
@@ -396,7 +392,7 @@ const TestResult = () => {
       }
     };
     fetchWorkerList();
-  }, [v_db]); 
+  }, [v_db]);
 
   // 3) Test Result 조회
   // 📌 2-1. [확인] 이 함수가 호출하는 API가 'dev_no'와 'lot_no2'를 반환하는지 확인해야 합니다.
@@ -417,7 +413,7 @@ const TestResult = () => {
 
   useEffect(() => {
     fetchTestResults(fromDt, toDt);
-     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
   // 4) 등록/수정 처리
@@ -431,10 +427,10 @@ const TestResult = () => {
       };
 
       const product = productList.find(p => p.jepum_cd === values.jepum_cd);
-      
+
       const dataForPrint = {
-        ...values, 
-        work_dt: work_dt, 
+        ...values,
+        work_dt: work_dt,
         jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
 
@@ -446,12 +442,12 @@ const TestResult = () => {
         if (resData.error) {
           message.error(`등록 실패: ${resData.error}`);
         } else {
-          message.success('등록 성공!'); 
+          message.success('등록 성공!');
           fetchTestResults(fromDt, toDt); // 📌 2-2. [확인] 등록 후 데이터를 다시 불러옵니다.
-          setModalTitle('등록 완료'); 
+          setModalTitle('등록 완료');
           setPrintableData(dataForPrint); // 모달 열기
-          form.resetFields(); 
-          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 }); 
+          form.resetFields();
+          form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
         }
       } else { // 수정
         const response = await fetch(`/api/update/etc/test-result?v_db=${v_db}`, {
@@ -465,7 +461,7 @@ const TestResult = () => {
           fetchTestResults(fromDt, toDt); // 📌 2-3. [확인] 수정 후 데이터를 다시 불러옵니다.
           setModalTitle('수정 완료');
           setPrintableData(dataForPrint); // 모달 열기
-          form.resetFields(); 
+          form.resetFields();
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
         }
       }
@@ -489,11 +485,11 @@ const TestResult = () => {
       workDtObj = dayjs(`${year}-${month}-${day}`, 'YYYY-MM-DD');
     }
     form.setFieldsValue({
-      lot_no: record.lot_no, 
+      lot_no: record.lot_no,
       lot_no2: record.lot_no2, // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
       dev_no: record.dev_no,   // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
-      jepum_cd: record.jepum_cd, 
-      amt: record.amt, 
+      jepum_cd: record.jepum_cd,
+      amt: record.amt,
       man_cd: record.man_cd,
       bin_no: record.bigo_1, // (BIN No는 bigo_1 필드를 사용)
       work_dt: workDtObj,
@@ -601,7 +597,7 @@ const TestResult = () => {
 
       {/* --- 2. 탭 (no-print 유지) --- */}
       <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
-        
+
         <TabPane tab="등록" key="1">
           <div className="no-print">
             <Form.Item label="바코드 스캔">
@@ -660,7 +656,7 @@ const TestResult = () => {
                   ))}
                 </Select>
               </Form.Item>
-              
+
               <Form.Item label="장비번호" name="dev_no">
                 <Input name="dev_no" placeholder="장비번호" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} onBlur={handleDevNoBlur} />
               </Form.Item>
@@ -668,7 +664,8 @@ const TestResult = () => {
               <Form.Item label="수량" name="amt"
                 rules={[
                   { required: true, message: '수량을 입력하거나 선택하세요.' },
-                  { validator: (_, value) => {
+                  {
+                    validator: (_, value) => {
                       const num = Number(value);
                       if (!value) return Promise.resolve();
                       if (isNaN(num)) return Promise.reject(new Error('수량은 숫자여야 합니다.'));
@@ -699,12 +696,12 @@ const TestResult = () => {
                   {editingRecord ? '수정하기' : '등록하기'}
                 </Button>
                 <Button onClick={() => {
-                    form.resetFields(); 
-                    setEditingRecord(null);
-                    form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
-                    setBarcodeInputValue('');
-                    if (barcodeScanOn && barcodeInputRef.current) barcodeInputRef.current.focus();
-                  }}>초기화</Button>
+                  form.resetFields();
+                  setEditingRecord(null);
+                  form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
+                  setBarcodeInputValue('');
+                  if (barcodeScanOn && barcodeInputRef.current) barcodeInputRef.current.focus();
+                }}>초기화</Button>
               </Form.Item>
             </Form>
           </div>
@@ -727,24 +724,24 @@ const TestResult = () => {
 
       {/* --- 3. 모달 (변경 없음) --- */}
       <Modal
-        title={modalTitle} 
+        title={modalTitle}
         open={!!printableData}
         onCancel={handleModalClose}
-        width={400} 
+        width={400}
         footer={null}
-        getContainer={false} 
+        getContainer={false}
       >
         <div className="modal-print-preview-content">
           <p>
-            {modalTitle.includes('완료') 
+            {modalTitle.includes('완료')
               ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
               : `다음 라벨을 재인쇄합니다.`
             }
           </p>
           <hr style={{ margin: '16px 0' }} />
-          
-          <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (50mm x 30mm)</h3>
-          
+
+          <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (80mm x 24mm)</h3>
+
           <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
             {printableData && (
               <LabelToPrint data={printableData} />
