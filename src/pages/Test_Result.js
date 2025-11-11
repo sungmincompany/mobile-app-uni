@@ -10,16 +10,16 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (📌 50x30, 2단 하이브리드 레이아웃)
+// LabelToPrint 컴포넌트 (📌 50x30, 좌우 여백 축소)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
-  // [기본] 라벨 전체 스타일 (50x30, 상하 1mm, 좌우 0.75mm 여백, 7pt 굵게)
+  // [기본] 라벨 전체 스타일
   const labelStyle = {
     width: '50mm',
     height: '30mm',
-    padding: '1mm 0.75mm',
+    padding: '1mm 0.3mm', // 👈 [요청] 좌우 여백을 0.75mm -> 0.3mm로 축소
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
     fontSize: '7pt',
@@ -30,7 +30,6 @@ const LabelToPrint = ({ data }) => {
     backgroundColor: 'white',
     color: 'black',
     overflow: 'hidden',
-    // 📌 [신규] 하단 영역(짧은것+QR)이 위로 밀리지 않도록 flex로 높이 배분
     display: 'flex',
     flexDirection: 'column',
   };
@@ -45,7 +44,8 @@ const LabelToPrint = ({ data }) => {
   // --- 1. 상단 영역 (긴 항목) ---
   const topTableStyle = {
     ...tableStyle,
-    flexShrink: 0, // 📌 상단 테이블은 줄어들지 않음
+    flex: 1, 
+    height: '100%', 
   };
   const thStyle = {
     border: '1px solid #333',
@@ -54,7 +54,7 @@ const LabelToPrint = ({ data }) => {
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
     textAlign: 'left',
-    width: '15%', // 📌 Label 너비 고정
+    width: '15%', 
     backgroundColor: '#eee'
   };
   const tdWideStyle = {
@@ -63,7 +63,7 @@ const LabelToPrint = ({ data }) => {
     fontSize: '7pt',
     fontWeight: 'bold',
     verticalAlign: 'middle',
-    width: '85%', // 📌 Value 너비
+    width: '85%', 
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -73,14 +73,13 @@ const LabelToPrint = ({ data }) => {
   const bottomContainerStyle = {
     display: 'flex',
     width: '100%',
-    flex: 1, // 📌 남은 공간을 모두 차지
     border: '1px solid #333',
-    borderTop: 'none', // 상단 테이블과 겹치는 테두리 제거
+    borderTop: 'none', 
   };
 
   // 2-1. 하단 좌측 (짧은 항목 4개)
   const leftInfoStyle = {
-    width: '60%', // 📌 하단 영역의 60%
+    width: '60%', 
     height: '100%',
   };
   const nestedTableStyle = {
@@ -89,20 +88,20 @@ const LabelToPrint = ({ data }) => {
   };
   const nestedThStyle = {
     ...thStyle,
-    width: '25%', // 📌 60% 영역의 25% (즉, 전체의 15%)
-    borderTop: 'none', // 내부 테두리
+    width: '25%', 
+    borderTop: 'none', 
     borderLeft: 'none',
   };
   const nestedTdStyle = {
     ...tdWideStyle,
-    width: '75%', // 📌 60% 영역의 75% (즉, 전체의 45%)
+    width: '75%', 
     borderTop: 'none',
     borderRight: 'none',
   };
 
   // 2-2. 하단 우측 (QR 코드)
   const rightQrStyle = {
-    width: '40%', // 📌 하단 영역의 40%
+    width: '40%', 
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
@@ -113,8 +112,7 @@ const LabelToPrint = ({ data }) => {
     borderLeft: '1px solid #333',
   };
 
-  // 📌 [신규] QR 코드 크기 (우측 40% 영역에 맞춤)
-  const qrSize = 10; // 10mm (영역 폭 약 19mm)
+  const qrSize = 10; // 10mm
 
   // 3자리 콤마 포맷
   const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
@@ -180,9 +178,6 @@ const LabelToPrint = ({ data }) => {
             style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
             level="M"
           />
-          <div style={{ marginTop: '0.5mm', fontSize: '6pt' }}>
-            {data.lot_no || 'N/A'}
-          </div>
         </div>
 
       </div>
