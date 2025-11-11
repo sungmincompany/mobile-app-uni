@@ -19,7 +19,7 @@ const LabelToPrint = ({ data }) => {
   const labelStyle = {
     width: '50mm',
     height: '30mm',
-    padding: '1mm 0.3mm', 
+    padding: '0.5mm 0.3mm', // 👈 [수정] 상단 여백을 0.5mm로 줄임
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
     fontSize: '7pt',
