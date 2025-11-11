@@ -10,35 +10,43 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (📌 50x30, 시인성 및 레이아웃 개선)
+// LabelToPrint 컴포넌트 (📌 50x30, 2단 하이브리드 레이아웃)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
+  // [기본] 라벨 전체 스타일 (50x30, 상하 1mm, 좌우 0.75mm 여백, 7pt 굵게)
   const labelStyle = {
     width: '50mm',
     height: '30mm',
-    padding: '1mm 0.75mm', // 👈 [요청 1, 2] 상하 1mm, 좌우 0.75mm 여백
+    padding: '1mm 0.75mm',
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
-    fontSize: '7pt',      // 👈 [요청 4] 폰트 크기 상향
-    fontWeight: 'bold',   // 👈 [요청 3] 전체 굵게
+    fontSize: '7pt',
+    fontWeight: 'bold',
     lineHeight: 1.1,
     position: 'relative',
     border: '1px dashed #999',
     backgroundColor: 'white',
     color: 'black',
     overflow: 'hidden',
+    // 📌 [신규] 하단 영역(짧은것+QR)이 위로 밀리지 않도록 flex로 높이 배분
+    display: 'flex',
+    flexDirection: 'column',
   };
 
+  // [공통] 테이블 스타일
   const tableStyle = {
     width: '100%',
-    height: '100%',
     borderCollapse: 'collapse',
     tableLayout: 'fixed',
   };
 
-  // 👈 [요청 6] 4열 구조로 재배치 (Label 15%, Value 35%)
+  // --- 1. 상단 영역 (긴 항목) ---
+  const topTableStyle = {
+    ...tableStyle,
+    flexShrink: 0, // 📌 상단 테이블은 줄어들지 않음
+  };
   const thStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
@@ -46,102 +54,138 @@ const LabelToPrint = ({ data }) => {
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
     textAlign: 'left',
-    width: '15%', // Label 너비
+    width: '15%', // 📌 Label 너비 고정
     backgroundColor: '#eee'
   };
-
-  const tdStyle = {
+  const tdWideStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
     fontSize: '7pt',
     fontWeight: 'bold',
     verticalAlign: 'middle',
-    width: '35%', // Value 너비
+    width: '85%', // 📌 Value 너비
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   };
 
-  // 제품명처럼 길어질 수 있는 셀 (줄바꿈 허용)
-  const tdWideStyle = {
-    ...tdStyle,
-    width: '85%', // 3칸 병합
-    whiteSpace: 'normal',
-    wordBreak: 'break-all',
+  // --- 2. 하단 영역 (짧은 항목 + QR) ---
+  const bottomContainerStyle = {
+    display: 'flex',
+    width: '100%',
+    flex: 1, // 📌 남은 공간을 모두 차지
+    border: '1px solid #333',
+    borderTop: 'none', // 상단 테이블과 겹치는 테두리 제거
   };
 
-  // 👈 [요청 5] QR 코드 크기 1/3로 축소
-  const qrSize = 7; // (기존 20mm -> 7mm)
-
-  // QR 코드용 셀 (하단)
-  const qrCellStyle = {
-    ...tdStyle,
-    width: '50%', // 2칸 병합
-    textAlign: 'left',
-    verticalAlign: 'middle',
-    padding: '1mm 0',
-    borderRight: 'none', // 우측 테두리 제거 (텍스트 셀과 병합)
+  // 2-1. 하단 좌측 (짧은 항목 4개)
+  const leftInfoStyle = {
+    width: '60%', // 📌 하단 영역의 60%
+    height: '100%',
+  };
+  const nestedTableStyle = {
+    ...tableStyle,
+    height: '100%',
+  };
+  const nestedThStyle = {
+    ...thStyle,
+    width: '25%', // 📌 60% 영역의 25% (즉, 전체의 15%)
+    borderTop: 'none', // 내부 테두리
+    borderLeft: 'none',
+  };
+  const nestedTdStyle = {
+    ...tdWideStyle,
+    width: '75%', // 📌 60% 영역의 75% (즉, 전체의 45%)
+    borderTop: 'none',
+    borderRight: 'none',
   };
 
-  // QR 코드 텍스트용 셀 (하단)
-  const qrTextStyle = {
-    ...tdStyle,
-    width: '50%', // 2칸 병합
-    textAlign: 'right',
-    verticalAlign: 'bottom', // 텍스트를 우측 하단에 배치
-    paddingRight: '1mm',
-    borderLeft: 'none', // 좌측 테두리 제거 (QR 셀과 병합)
+  // 2-2. 하단 우측 (QR 코드)
+  const rightQrStyle = {
+    width: '40%', // 📌 하단 영역의 40%
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '0.5mm',
+    boxSizing: 'border-box',
+    borderLeft: '1px solid #333',
   };
 
-  // 3자리 콤마 포맷 적용
+  // 📌 [신규] QR 코드 크기 (우측 40% 영역에 맞춤)
+  const qrSize = 10; // 10mm (영역 폭 약 19mm)
+
+  // 3자리 콤마 포맷
   const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
 
   return (
     <div style={labelStyle} className="label-print-container-class">
-      <table style={tableStyle}>
+
+      {/* 1. 상단 테이블 (긴 항목) */}
+      <table style={topTableStyle}>
         <tbody>
-          {/* 1행: LOT, 상위 */}
+          {/* 1행: LOT */}
           <tr>
             <th style={thStyle}>LOT</th>
-            <td style={tdStyle}>{data.lot_no}</td>
-            <th style={thStyle}>상위</th>
-            <td style={tdStyle}>{data.lot_no2}</td>
+            <td style={tdWideStyle}>{data.lot_no}</td>
           </tr>
-          {/* 2행: 제품 */}
+          {/* 2행: 상위 */}
+          <tr>
+            <th style={thStyle}>상위</th>
+            <td style={tdWideStyle}>{data.lot_no2}</td>
+          </tr>
+          {/* 3행: 제품 */}
           <tr>
             <th style={thStyle}>제품</th>
-            <td style={tdWideStyle} colSpan="3">{data.jepum_nm}</td>
-          </tr>
-          {/* 3행: 수량, 장비 */}
-          <tr>
-            <th style={thStyle}>수량</th>
-            <td style={tdStyle}>{formattedAmt}</td>
-            <th style={thStyle}>장비</th>
-            <td style={tdStyle}>{data.dev_no || ''}</td>
-          </tr>
-          {/* 4행: 작업, BIN */}
-          <tr>
-            <th style={thStyle}>작업</th>
-            <td style={tdStyle}>{data.man_cd}</td>
-            <th style={thStyle}>BIN</th>
-            <td style={tdStyle}>{data.bin_no || ''}</td>
-          </tr>
-          {/* 5행: QR Code 및 텍스트 */}
-          <tr>
-            <td style={qrCellStyle} colSpan="2">
-              <QRCodeSVG
-                value={data.lot_no || 'N/A'}
-                size={qrSize * 3.78}
-                style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
-                level="M"
-              />
-            </td>
-            <td style={qrTextStyle} colSpan="2">
-              {data.lot_no || 'N/A'}
+            <td style={{ ...tdWideStyle, whiteSpace: 'normal', wordBreak: 'break-all' }}>
+              {data.jepum_nm}
             </td>
           </tr>
         </tbody>
       </table>
+
+      {/* 2. 하단 컨테이너 (짧은 항목 + QR) */}
+      <div style={bottomContainerStyle}>
+        
+        {/* 2-1. 하단 좌측 (짧은 항목 4개 - 중첩 테이블) */}
+        <div style={leftInfoStyle}>
+          <table style={nestedTableStyle}>
+            <tbody>
+              <tr>
+                <th style={nestedThStyle}>수량</th>
+                <td style={nestedTdStyle}>{formattedAmt}</td>
+              </tr>
+              <tr>
+                <th style={nestedThStyle}>장비</th>
+                <td style={nestedTdStyle}>{data.dev_no || ''}</td>
+              </tr>
+              <tr>
+                <th style={nestedThStyle}>작업</th>
+                <td style={nestedTdStyle}>{data.man_cd}</td>
+              </tr>
+              <tr>
+                <th style={{...nestedThStyle, borderBottom: 'none'}}>BIN</th>
+                <td style={{...nestedTdStyle, borderBottom: 'none'}}>{data.bin_no || ''}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 2-2. 하단 우측 (QR 코드) */}
+        <div style={rightQrStyle}>
+          <QRCodeSVG
+            value={data.lot_no || 'N/A'}
+            size={qrSize * 3.78}
+            style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
+            level="M"
+          />
+          <div style={{ marginTop: '0.5mm', fontSize: '6pt' }}>
+            {data.lot_no || 'N/A'}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };
