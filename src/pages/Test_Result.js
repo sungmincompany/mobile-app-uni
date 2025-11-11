@@ -10,18 +10,19 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (📌 50mm x 30mm, 여백 적용)
+// LabelToPrint 컴포넌트 (📌 50x30, 시인성 및 레이아웃 개선)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
   const labelStyle = {
-    width: '50mm',   // 👈 50mm 가로
-    height: '30mm',  // 👈 30mm 세로
-    padding: '2mm 1.5mm', // 👈 상하 2mm, 좌우 1.5mm 여백
+    width: '50mm',
+    height: '30mm',
+    padding: '1mm 0.75mm', // 👈 [요청 1, 2] 상하 1mm, 좌우 0.75mm 여백
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
-    fontSize: '6pt',
+    fontSize: '7pt',      // 👈 [요청 4] 폰트 크기 상향
+    fontWeight: 'bold',   // 👈 [요청 3] 전체 굵게
     lineHeight: 1.1,
     position: 'relative',
     border: '1px dashed #999',
@@ -37,54 +38,60 @@ const LabelToPrint = ({ data }) => {
     tableLayout: 'fixed',
   };
 
-  // 📌 [재수정] TH 너비 (비율은 기존과 동일)
+  // 👈 [요청 6] 4열 구조로 재배치 (Label 15%, Value 35%)
   const thStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
-    fontSize: '6pt',
+    fontSize: '7pt',
+    fontWeight: 'bold',
     whiteSpace: 'nowrap',
     textAlign: 'left',
-    width: '12%', 
+    width: '15%', // Label 너비
     backgroundColor: '#eee'
   };
 
-  // 📌 [재수정] TD 너비 (비율은 기존과 동일)
   const tdStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
-    fontSize: '6pt',
-    wordBreak: 'break-all',
+    fontSize: '7pt',
+    fontWeight: 'bold',
     verticalAlign: 'middle',
-    width: '43%', 
-  };
-
-  const tdNowrapStyle = {
-    ...tdStyle,
+    width: '35%', // Value 너비
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    fontSize: '6pt',
   };
 
-  // 📌 [재수정] QR 코드 셀 스타일 (비율은 기존과 동일)
-  const qrTdStyle = {
+  // 제품명처럼 길어질 수 있는 셀 (줄바꿈 허용)
+  const tdWideStyle = {
     ...tdStyle,
-    width: '45%', 
-    padding: '0.5mm',
-    textAlign: 'center',
+    width: '85%', // 3칸 병합
+    whiteSpace: 'normal',
+    wordBreak: 'break-all',
+  };
+
+  // 👈 [요청 5] QR 코드 크기 1/3로 축소
+  const qrSize = 7; // (기존 20mm -> 7mm)
+
+  // QR 코드용 셀 (하단)
+  const qrCellStyle = {
+    ...tdStyle,
+    width: '50%', // 2칸 병합
+    textAlign: 'left',
     verticalAlign: 'middle',
+    padding: '1mm 0',
+    borderRight: 'none', // 우측 테두리 제거 (텍스트 셀과 병합)
   };
 
-  const qrCellContentStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
+  // QR 코드 텍스트용 셀 (하단)
+  const qrTextStyle = {
+    ...tdStyle,
+    width: '50%', // 2칸 병합
+    textAlign: 'right',
+    verticalAlign: 'bottom', // 텍스트를 우측 하단에 배치
+    paddingRight: '1mm',
+    borderLeft: 'none', // 좌측 테두리 제거 (QR 셀과 병합)
   };
-
-  // 📌 [재수정] QR 코드 크기 (새로운 높이 30mm, 여백 2mm*2 -> 26mm 안에 맞춤)
-  const qrSize = 20; // 20mm (세로 26mm, 가로 약 21mm 안에 맞춤)
 
   // 3자리 콤마 포맷 적용
   const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
@@ -93,67 +100,44 @@ const LabelToPrint = ({ data }) => {
     <div style={labelStyle} className="label-print-container-class">
       <table style={tableStyle}>
         <tbody>
-          {/* 1행 (LOT NO) */}
+          {/* 1행: LOT, 상위 */}
           <tr>
             <th style={thStyle}>LOT</th>
-            <td style={tdNowrapStyle}>{data.lot_no}</td>
-            {/* QR 셀을 5행으로 확장하고 텍스트 추가 */}
-            <td rowSpan="5" style={qrTdStyle}>
-              <div style={{ ...qrCellContentStyle, flexDirection: 'column' }}>
-                <QRCodeSVG
-                  value={data.lot_no || 'N/A'}
-                  size={qrSize * 3.78}
-                  style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
-                  level="M"
-                />
-                <div style={{ marginTop: '0.5mm', fontSize: '6pt', fontWeight: 'bold' }}>
-                  {data.lot_no || 'N/A'}
-                </div>
-              </div>
-            </td>
-          </tr>
-          {/* 2행 (상위) */}
-          <tr>
+            <td style={tdStyle}>{data.lot_no}</td>
             <th style={thStyle}>상위</th>
-            <td style={tdNowrapStyle}>{data.lot_no2}</td>
+            <td style={tdStyle}>{data.lot_no2}</td>
           </tr>
-          {/* 3행 (제품) */}
+          {/* 2행: 제품 */}
           <tr>
             <th style={thStyle}>제품</th>
-            <td style={{ ...tdStyle, fontSize: '6pt' }}>{data.jepum_nm}</td>
+            <td style={tdWideStyle} colSpan="3">{data.jepum_nm}</td>
           </tr>
-          {/* 4행 (수량 + 장비) */}
+          {/* 3행: 수량, 장비 */}
           <tr>
             <th style={thStyle}>수량</th>
-            <td style={{ ...tdStyle, padding: 0 }} colSpan={1}>
-              <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                <div style={{ ...tdNowrapStyle, width: '45%', border: 'none', borderRight: '1px solid #333' }}>
-                  {formattedAmt}
-                </div>
-                <th style={{ ...thStyle, width: '25%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
-                  장비
-                </th>
-                <td style={{ ...tdNowrapStyle, width: '30%', border: 'none', borderTop: '1px solid #333' }}>
-                  {data.dev_no || ''}
-                </td>
-              </div>
-            </td>
+            <td style={tdStyle}>{formattedAmt}</td>
+            <th style={thStyle}>장비</th>
+            <td style={tdStyle}>{data.dev_no || ''}</td>
           </tr>
-          {/* 5행 (작업 + BIN) */}
+          {/* 4행: 작업, BIN */}
           <tr>
             <th style={thStyle}>작업</th>
-            <td style={{ ...tdStyle, padding: 0 }} colSpan={1}>
-              <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                <div style={{ ...tdNowrapStyle, width: '45%', border: 'none', borderRight: '1px solid #333' }}>
-                  {data.man_cd}
-                </div>
-                <th style={{ ...thStyle, width: '25%', border: 'none', borderRight: '1px solid #333', borderTop: '1px solid #333' }}>
-                  BIN
-                </th>
-                <td style={{ ...tdNowrapStyle, width: '30%', border: 'none', borderTop: '1px solid #333' }}>
-                  {data.bin_no || ''}
-                </td>
-              </div>
+            <td style={tdStyle}>{data.man_cd}</td>
+            <th style={thStyle}>BIN</th>
+            <td style={tdStyle}>{data.bin_no || ''}</td>
+          </tr>
+          {/* 5행: QR Code 및 텍스트 */}
+          <tr>
+            <td style={qrCellStyle} colSpan="2">
+              <QRCodeSVG
+                value={data.lot_no || 'N/A'}
+                size={qrSize * 3.78}
+                style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
+                level="M"
+              />
+            </td>
+            <td style={qrTextStyle} colSpan="2">
+              {data.lot_no || 'N/A'}
             </td>
           </tr>
         </tbody>
@@ -161,7 +145,7 @@ const LabelToPrint = ({ data }) => {
     </div>
   );
 };
-// ------------------------------------------------------------------
+// ----------------------------------------------------------
 // (이하 TestResult 컴포넌트)
 // ------------------------------------------------------------------
 
