@@ -12,19 +12,19 @@ code {
     monospace;
 }
 
-/* --- 📌 [수정] CSS 인쇄 규칙 (v20 - 최종본) --- */
+/* --- 📌 [수정] CSS 인쇄 규칙 (50mm x 30mm) --- */
 
-/* 1. 용지 크기 정의: 길이 80mm, 폭 24mm로 설정 */
+/* 1. 용지 크기 정의: 가로 50mm, 세로 30mm로 설정 */
 @page {
-  size: 80mm 24mm; /* 👈 수정: 가로 길이를 80mm로 길게 설정 */
+  size: 50mm 30mm; /* 👈 수정: 50mm x 30mm */
   margin: 0;
 }
 
 @media print {
   
   /* 2. 💥 [핵심 1] 모든 상위 컨테이너의 높이를 0으로 만들어 
-     22페이지 문제를 원천 봉쇄합니다. 
-  */
+     다중 페이지 문제를 원천 봉쇄합니다. 
+   */
   html, body, #root {
     height: 0 !important;
     min-height: 0 !important;
@@ -83,10 +83,10 @@ code {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 80mm !important; /* 👈 수정: 디자인의 실제 폭(테이프 길이 방향) */
-    height: 24mm !important; /* 👈 수정: 디자인의 실제 높이(테이프 폭 방향) */
+    width: 50mm !important; /* 👈 수정: 50mm */
+    height: 30mm !important; /* 👈 수정: 30mm */
     border: none !important;
-    padding: 0 !important;
+    padding: 0 !important; /* 👈 [중요] CSS에서는 padding 0유지. 실제 여백은 JS labelStyle에서 boxSizing으로 제어 */
     margin: 0 !important;
     box-sizing: border-box !important;
     overflow: visible !important;

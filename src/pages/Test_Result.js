@@ -10,15 +10,15 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (📌 1번 짤림 문제 수정: 3열 기반 + flex 레이아웃)
+// LabelToPrint 컴포넌트 (📌 50mm x 30mm, 여백 적용)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
   const labelStyle = {
-    width: '80mm',  // 👈 80mm 길이 (테이프 길이에 해당)
-    height: '24mm', // 👈 24mm 폭 (테이프 폭에 해당)
-    padding: '0',
+    width: '50mm',   // 👈 50mm 가로
+    height: '30mm',  // 👈 30mm 세로
+    padding: '2mm 1.5mm', // 👈 상하 2mm, 좌우 1.5mm 여백
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
     fontSize: '6pt',
@@ -37,28 +37,27 @@ const LabelToPrint = ({ data }) => {
     tableLayout: 'fixed',
   };
 
-  // 📌 [재수정] TH 너비
+  // 📌 [재수정] TH 너비 (비율은 기존과 동일)
   const thStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
     fontSize: '6pt',
     whiteSpace: 'nowrap',
     textAlign: 'left',
-    width: '12%', // 👈 너비 비율을 줄임 (80mm 기준)
+    width: '12%', 
     backgroundColor: '#eee'
   };
 
-  // 📌 [재수정] TD 너비
+  // 📌 [재수정] TD 너비 (비율은 기존과 동일)
   const tdStyle = {
     border: '1px solid #333',
     padding: '0.2mm 0.5mm',
     fontSize: '6pt',
     wordBreak: 'break-all',
     verticalAlign: 'middle',
-    width: '43%', // 👈 너비 비율 조정
+    width: '43%', 
   };
 
-  // 📌 [재수정] 짤림 방지용 TD 스타일
   const tdNowrapStyle = {
     ...tdStyle,
     whiteSpace: 'nowrap',
@@ -67,10 +66,10 @@ const LabelToPrint = ({ data }) => {
     fontSize: '6pt',
   };
 
-  // 📌 [재수정] QR 코드 셀 스타일 (너비를 늘려 QR을 위한 공간 확보)
+  // 📌 [재수정] QR 코드 셀 스타일 (비율은 기존과 동일)
   const qrTdStyle = {
     ...tdStyle,
-    width: '45%', // 👈 QR 코드 너비 비율 (가장 넓게)
+    width: '45%', 
     padding: '0.5mm',
     textAlign: 'center',
     verticalAlign: 'middle',
@@ -84,8 +83,8 @@ const LabelToPrint = ({ data }) => {
     height: '100%',
   };
 
-  // 📌 [재수정] QR 코드 크기를 24mm 높이 안에 맞춤
-  const qrSize = 18; // 18mm (24mm 높이 안에 들어가도록)
+  // 📌 [재수정] QR 코드 크기 (새로운 높이 30mm, 여백 2mm*2 -> 26mm 안에 맞춤)
+  const qrSize = 20; // 20mm (세로 26mm, 가로 약 21mm 안에 맞춤)
 
   // 3자리 콤마 포맷 적용
   const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
