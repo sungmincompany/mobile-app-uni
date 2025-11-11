@@ -10,16 +10,16 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// LabelToPrint 컴포넌트 (📌 50x30, 좌우 여백 축소)
+// LabelToPrint 컴포넌트 (📌 50x30, 셀 상하 Padding 증가)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
 
-  // [기본] 라벨 전체 스타일
+  // [기본] 라벨 전체 스타일 (변경 없음)
   const labelStyle = {
     width: '50mm',
     height: '30mm',
-    padding: '1mm 0.3mm', // 👈 [요청] 좌우 여백을 0.75mm -> 0.3mm로 축소
+    padding: '1mm 0.3mm', 
     boxSizing: 'border-box',
     fontFamily: 'Malgun Gothic, Arial, sans-serif',
     fontSize: '7pt',
@@ -34,7 +34,7 @@ const LabelToPrint = ({ data }) => {
     flexDirection: 'column',
   };
 
-  // [공통] 테이블 스타일
+  // [공통] 테이블 스타일 (변경 없음)
   const tableStyle = {
     width: '100%',
     borderCollapse: 'collapse',
@@ -49,7 +49,7 @@ const LabelToPrint = ({ data }) => {
   };
   const thStyle = {
     border: '1px solid #333',
-    padding: '0.2mm 0.5mm',
+    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
     fontSize: '7pt',
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
@@ -59,7 +59,7 @@ const LabelToPrint = ({ data }) => {
   };
   const tdWideStyle = {
     border: '1px solid #333',
-    padding: '0.2mm 0.5mm',
+    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
     fontSize: '7pt',
     fontWeight: 'bold',
     verticalAlign: 'middle',
@@ -88,18 +88,20 @@ const LabelToPrint = ({ data }) => {
   };
   const nestedThStyle = {
     ...thStyle,
+    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
     width: '25%', 
     borderTop: 'none', 
     borderLeft: 'none',
   };
   const nestedTdStyle = {
     ...tdWideStyle,
+    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
     width: '75%', 
     borderTop: 'none',
     borderRight: 'none',
   };
 
-  // 2-2. 하단 우측 (QR 코드)
+  // 2-2. 하단 우측 (QR 코드 - 변경 없음)
   const rightQrStyle = {
     width: '40%', 
     height: '100%',
