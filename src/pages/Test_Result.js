@@ -44,8 +44,8 @@ const LabelToPrint = ({ data }) => {
   // --- 1. 상단 영역 (긴 항목) ---
   const topTableStyle = {
     ...tableStyle,
-    flex: 1, 
-    height: '100%', 
+    flex: 1,
+    height: '100%',
   };
   const thStyle = {
     border: '1px solid #333',
@@ -54,7 +54,7 @@ const LabelToPrint = ({ data }) => {
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
     textAlign: 'left',
-    width: '15%', 
+    width: '25%',
     backgroundColor: '#eee'
   };
   const tdWideStyle = {
@@ -63,7 +63,7 @@ const LabelToPrint = ({ data }) => {
     fontSize: '7pt',
     fontWeight: 'bold',
     verticalAlign: 'middle',
-    width: '85%', 
+    width: '85%',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -74,12 +74,12 @@ const LabelToPrint = ({ data }) => {
     display: 'flex',
     width: '100%',
     border: '1px solid #333',
-    borderTop: 'none', 
+    borderTop: 'none',
   };
 
   // 2-1. 하단 좌측 (짧은 항목 4개)
   const leftInfoStyle = {
-    width: '60%', 
+    width: '60%',
     height: '100%',
   };
   const nestedTableStyle = {
@@ -89,21 +89,21 @@ const LabelToPrint = ({ data }) => {
   const nestedThStyle = {
     ...thStyle,
     padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    width: '25%', 
-    borderTop: 'none', 
+    width: '45%',
+    borderTop: 'none',
     borderLeft: 'none',
   };
   const nestedTdStyle = {
     ...tdWideStyle,
     padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    width: '75%', 
+    width: '75%',
     borderTop: 'none',
     borderRight: 'none',
   };
 
   // 2-2. 하단 우측 (QR 코드 - 변경 없음)
   const rightQrStyle = {
-    width: '40%', 
+    width: '40%',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
@@ -127,47 +127,48 @@ const LabelToPrint = ({ data }) => {
         <tbody>
           {/* 1행: LOT */}
           <tr>
-            <th style={thStyle}>LOT</th>
-            <td style={tdWideStyle}>{data.lot_no}</td>
+            <th style={thStyle}>모델명</th>
+            <td style={{ ...tdWideStyle, whiteSpace: 'normal', wordBreak: 'break-all' }}>
+              {data.jepum_nm}
+            </td>
           </tr>
           {/* 2행: 상위 */}
           <tr>
-            <th style={thStyle}>상위</th>
+            <th style={thStyle}>상위LOT</th>
             <td style={tdWideStyle}>{data.lot_no2}</td>
           </tr>
           {/* 3행: 제품 */}
           <tr>
-            <th style={thStyle}>제품</th>
-            <td style={{ ...tdWideStyle, whiteSpace: 'normal', wordBreak: 'break-all' }}>
-              {data.jepum_nm}
-            </td>
+            <th style={thStyle}>하위LOT</th>
+            <td style={tdWideStyle}>{data.lot_no}</td>
           </tr>
         </tbody>
       </table>
 
       {/* 2. 하단 컨테이너 (짧은 항목 + QR) */}
       <div style={bottomContainerStyle}>
-        
+
         {/* 2-1. 하단 좌측 (짧은 항목 4개 - 중첩 테이블) */}
         <div style={leftInfoStyle}>
           <table style={nestedTableStyle}>
             <tbody>
               <tr>
+                <th style={{ ...nestedThStyle, borderBottom: 'none' }}>BIN번호</th>
+                <td style={{ ...nestedTdStyle, borderBottom: 'none' }}>{data.bin_no || ''}</td>
+              </tr>
+              <tr>
                 <th style={nestedThStyle}>수량</th>
                 <td style={nestedTdStyle}>{formattedAmt}</td>
               </tr>
               <tr>
-                <th style={nestedThStyle}>장비</th>
+                <th style={nestedThStyle}>장비번호</th>
                 <td style={nestedTdStyle}>{data.dev_no || ''}</td>
               </tr>
               <tr>
-                <th style={nestedThStyle}>작업</th>
+                <th style={nestedThStyle}>작업자</th>
                 <td style={nestedTdStyle}>{data.man_cd}</td>
               </tr>
-              <tr>
-                <th style={{...nestedThStyle, borderBottom: 'none'}}>BIN</th>
-                <td style={{...nestedTdStyle, borderBottom: 'none'}}>{data.bin_no || ''}</td>
-              </tr>
+
             </tbody>
           </table>
         </div>
