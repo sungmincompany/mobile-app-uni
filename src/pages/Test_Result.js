@@ -1,9 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
-  Tabs, Form, Input, Button, DatePicker, message, Row, Col, Table, Modal, Select, Popover, Switch, Space, AutoComplete
-} from 'antd';
-import dayjs from 'dayjs';
-import { QRCodeSVG } from 'qrcode.react';
+  Tabs,
+  Form,
+  Input,
+  Button,
+  DatePicker,
+  message,
+  Row,
+  Col,
+  Table,
+  Modal,
+  Select,
+  Popover,
+  Switch,
+  Space,
+  AutoComplete,
+} from "antd";
+import dayjs from "dayjs";
+import { QRCodeSVG } from "qrcode.react";
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
@@ -17,118 +31,125 @@ const LabelToPrint = ({ data }) => {
 
   // [기본] 라벨 전체 스타일 (변경 없음)
   const labelStyle = {
-    width: '50mm',
-    height: '30mm',
-    padding: '0.5mm 0.3mm', // 👈 [수정] 상단 여백을 0.5mm로 줄임
-    boxSizing: 'border-box',
-    fontFamily: 'Malgun Gothic, Arial, sans-serif',
-    fontSize: '7pt',
-    fontWeight: 'bold',
+    width: "50mm",
+    height: "30mm",
+    padding: "0.5mm 0.3mm", // 👈 [수정] 상단 여백을 0.5mm로 줄임
+    boxSizing: "border-box",
+    fontFamily: "Malgun Gothic, Arial, sans-serif",
+    fontSize: "7pt",
+    fontWeight: "bold",
     lineHeight: 1.1,
-    position: 'relative',
-    border: '1px dashed #999',
-    backgroundColor: 'white',
-    color: 'black',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
+    position: "relative",
+    border: "1px dashed #999",
+    backgroundColor: "white",
+    color: "black",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
   };
 
   // [공통] 테이블 스타일 (변경 없음)
   const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'fixed',
+    width: "100%",
+    borderCollapse: "collapse",
+    tableLayout: "fixed",
   };
 
   // --- 1. 상단 영역 (긴 항목) ---
   const topTableStyle = {
     ...tableStyle,
     flex: 1,
-    height: '100%',
+    height: "100%",
   };
   const thStyle = {
-    border: '1px solid #333',
-    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    fontSize: '7pt',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
-    textAlign: 'left',
-    width: '25%',
-    backgroundColor: '#eee'
+    border: "1px solid #333",
+    padding: "0.4mm 0.5mm", // 👈 [수정] 상하 0.4mm로 증가
+    fontSize: "7pt",
+    fontWeight: "bold",
+    whiteSpace: "nowrap",
+    textAlign: "left",
+    width: "25%",
+    backgroundColor: "#eee",
   };
   const tdWideStyle = {
-    border: '1px solid #333',
-    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    fontSize: '7pt',
-    fontWeight: 'bold',
-    verticalAlign: 'middle',
-    width: '85%',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    border: "1px solid #333",
+    padding: "0.4mm 0.5mm", // 👈 [수정] 상하 0.4mm로 증가
+    fontSize: "7pt",
+    fontWeight: "bold",
+    verticalAlign: "middle",
+    width: "85%",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
 
   // --- 2. 하단 영역 (짧은 항목 + QR) ---
   const bottomContainerStyle = {
-    display: 'flex',
-    width: '100%',
-    border: '1px solid #333',
-    borderTop: 'none',
+    display: "flex",
+    width: "100%",
+    border: "1px solid #333",
+    borderTop: "none",
   };
 
   // 2-1. 하단 좌측 (짧은 항목 4개)
   const leftInfoStyle = {
-    width: '60%',
-    height: '100%',
+    width: "60%",
+    height: "100%",
   };
   const nestedTableStyle = {
     ...tableStyle,
-    height: '100%',
+    height: "100%",
   };
   const nestedThStyle = {
     ...thStyle,
-    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    width: '45%',
-    borderTop: 'none',
-    borderLeft: 'none',
+    padding: "0.4mm 0.5mm", // 👈 [수정] 상하 0.4mm로 증가
+    width: "45%",
+    borderTop: "none",
+    borderLeft: "none",
   };
   const nestedTdStyle = {
     ...tdWideStyle,
-    padding: '0.4mm 0.5mm', // 👈 [수정] 상하 0.4mm로 증가
-    width: '75%',
-    borderTop: 'none',
-    borderRight: 'none',
+    padding: "0.4mm 0.5mm", // 👈 [수정] 상하 0.4mm로 증가
+    width: "75%",
+    borderTop: "none",
+    borderRight: "none",
   };
 
   // 2-2. 하단 우측 (QR 코드 - 변경 없음)
   const rightQrStyle = {
-    width: '40%',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '0.5mm',
-    boxSizing: 'border-box',
-    borderLeft: '1px solid #333',
+    width: "40%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "0.5mm",
+    boxSizing: "border-box",
+    borderLeft: "1px solid #333",
   };
 
   const qrSize = 10; // 10mm
 
   // 3자리 콤마 포맷
-  const formattedAmt = data.amt ? Number(data.amt).toLocaleString('en-US') : '0';
+  const formattedAmt = data.amt
+    ? Number(data.amt).toLocaleString("en-US")
+    : "0";
 
   return (
     <div style={labelStyle} className="label-print-container-class">
-
       {/* 1. 상단 테이블 (긴 항목) */}
       <table style={topTableStyle}>
         <tbody>
           {/* 1행: LOT */}
           <tr>
             <th style={thStyle}>모델명</th>
-            <td style={{ ...tdWideStyle, whiteSpace: 'normal', wordBreak: 'break-all' }}>
+            <td
+              style={{
+                ...tdWideStyle,
+                whiteSpace: "normal",
+                wordBreak: "break-all",
+              }}
+            >
               {data.jepum_nm}
             </td>
           </tr>
@@ -147,14 +168,17 @@ const LabelToPrint = ({ data }) => {
 
       {/* 2. 하단 컨테이너 (짧은 항목 + QR) */}
       <div style={bottomContainerStyle}>
-
         {/* 2-1. 하단 좌측 (짧은 항목 4개 - 중첩 테이블) */}
         <div style={leftInfoStyle}>
           <table style={nestedTableStyle}>
             <tbody>
               <tr>
-                <th style={{ ...nestedThStyle, borderBottom: 'none' }}>BIN번호</th>
-                <td style={{ ...nestedTdStyle, borderBottom: 'none' }}>{data.bin_no || ''}</td>
+                <th style={{ ...nestedThStyle, borderBottom: "none" }}>
+                  BIN번호
+                </th>
+                <td style={{ ...nestedTdStyle, borderBottom: "none" }}>
+                  {data.bin_no || ""}
+                </td>
               </tr>
               <tr>
                 <th style={nestedThStyle}>수량</th>
@@ -162,13 +186,12 @@ const LabelToPrint = ({ data }) => {
               </tr>
               <tr>
                 <th style={nestedThStyle}>장비번호</th>
-                <td style={nestedTdStyle}>{data.dev_no || ''}</td>
+                <td style={nestedTdStyle}>{data.dev_no || ""}</td>
               </tr>
               <tr>
                 <th style={nestedThStyle}>작업자</th>
                 <td style={nestedTdStyle}>{data.man_cd}</td>
               </tr>
-
             </tbody>
           </table>
         </div>
@@ -176,13 +199,12 @@ const LabelToPrint = ({ data }) => {
         {/* 2-2. 하단 우측 (QR 코드) */}
         <div style={rightQrStyle}>
           <QRCodeSVG
-            value={data.lot_no || 'N/A'}
+            value={data.lot_no || "N/A"}
             size={qrSize * 3.78}
             style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
             level="M"
           />
         </div>
-
       </div>
     </div>
   );
@@ -191,30 +213,29 @@ const LabelToPrint = ({ data }) => {
 // (이하 TestResult 컴포넌트)
 // ------------------------------------------------------------------
 
-
 // 컴포넌트 이름 (PascalCase)
 const TestResult = () => {
   const [form] = Form.useForm();
   const [productList, setProductList] = useState([]);
   const [workerList, setWorkerList] = useState([]);
   const [testResults, setTestResults] = useState([]);
-  const [fromDt, setFromDt] = useState(dayjs().startOf('month'));
+  const [fromDt, setFromDt] = useState(dayjs().startOf("month"));
   const [toDt, setToDt] = useState(dayjs());
   const [editingRecord, setEditingRecord] = useState(null);
-  const [activeTab, setActiveTab] = useState('1');
-  const v_db = '16_UR';
+  const [activeTab, setActiveTab] = useState("1");
+  const v_db = "16_UR";
   const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false);
   const [barcodeScanOn, setBarcodeScanOn] = useState(true);
   const barcodeInputRef = useRef(null);
   const [idleCountdown, setIdleCountdown] = useState(10);
   const idleTimerRef = useRef(null);
   const countdownTimerRef = useRef(null);
-  const [barcodeInputValue, setBarcodeInputValue] = useState('');
+  const [barcodeInputValue, setBarcodeInputValue] = useState("");
   const [isProductSelectReady, setIsProductSelectReady] = useState(false);
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
   const [printableData, setPrintableData] = useState(null);
-  const [modalTitle, setModalTitle] = useState('등록/수정 완료');
+  const [modalTitle, setModalTitle] = useState("등록/수정 완료");
   const [openPopoverKey, setOpenPopoverKey] = useState(null);
 
   // 브라우저 기본 인쇄 기능 호출
@@ -226,20 +247,23 @@ const TestResult = () => {
   const handleModalClose = () => {
     setPrintableData(null);
     if (editingRecord) {
-      setActiveTab('2');
+      setActiveTab("2");
       setEditingRecord(null);
     }
   };
 
   // 재인쇄 버튼 클릭 핸들러
   const handleRePrint = (record) => {
-    const product = productList.find(p => p.jepum_cd === record.jepum_cd);
+    const product = productList.find((p) => p.jepum_cd === record.jepum_cd);
     const jepum_nm = product ? product.jepum_nm : record.jepum_cd;
     let displayDate = record.work_dt;
     if (record.work_dt && record.work_dt.length === 8) {
-      displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(4, 6)}-${record.work_dt.slice(6, 8)}`;
+      displayDate = `${record.work_dt.slice(0, 4)}-${record.work_dt.slice(
+        4,
+        6
+      )}-${record.work_dt.slice(6, 8)}`;
     }
-    setModalTitle('라벨 재인쇄');
+    setModalTitle("라벨 재인쇄");
     setPrintableData({
       lot_no: record.lot_no,
       lot_no2: record.lot_no2,
@@ -247,7 +271,7 @@ const TestResult = () => {
       amt: record.amt,
       man_cd: record.man_cd,
       work_dt: displayDate,
-      dev_no: record.dev_no,   // (이전 수정에서 추가됨)
+      dev_no: record.dev_no, // (이전 수정에서 추가됨)
       bin_no: record.bigo_1, // (이전 수정에서 추가됨)
     });
   };
@@ -267,12 +291,12 @@ const TestResult = () => {
 
   // Form 값이 변경될 때마다 호출되는 핸들러
   const handleValuesChange = (changedValues, allValues) => {
-    if (changedValues.hasOwnProperty('dev_no')) {
+    if (changedValues.hasOwnProperty("dev_no")) {
       const newDevNo = changedValues.dev_no;
       if (newDevNo && !allValues.lot_no) {
         const now = dayjs();
-        const mmdd = now.format('MMDD');
-        const hhmm = now.format('HHMM');
+        const mmdd = now.format("MMDD");
+        const hhmm = now.format("HHmm");
         const generatedLotNo = `${mmdd}-${hhmm}-${newDevNo}`;
         form.setFieldsValue({ lot_no: generatedLotNo });
       }
@@ -284,23 +308,28 @@ const TestResult = () => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-      if (!barcodeScanOn || activeTab !== '1') return;
+      if (!barcodeScanOn || activeTab !== "1") return;
       setIdleCountdown(10);
       countdownTimerRef.current = setInterval(() => {
-        setIdleCountdown(prev => Math.max(0, prev - 1));
+        setIdleCountdown((prev) => Math.max(0, prev - 1));
       }, 1000);
       idleTimerRef.current = setTimeout(() => {
-        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current.input) {
+        if (
+          barcodeInputRef.current &&
+          document.activeElement !== barcodeInputRef.current.input
+        ) {
           barcodeInputRef.current.focus();
         }
       }, 10000);
     };
-    if (barcodeScanOn && activeTab === '1') {
-      const events = ['mousedown', 'touchstart', 'keydown'];
-      events.forEach(event => window.addEventListener(event, resetIdleTimer));
+    if (barcodeScanOn && activeTab === "1") {
+      const events = ["mousedown", "touchstart", "keydown"];
+      events.forEach((event) => window.addEventListener(event, resetIdleTimer));
       resetIdleTimer();
       return () => {
-        events.forEach(event => window.removeEventListener(event, resetIdleTimer));
+        events.forEach((event) =>
+          window.removeEventListener(event, resetIdleTimer)
+        );
         clearTimeout(idleTimerRef.current);
         clearInterval(countdownTimerRef.current);
       };
@@ -318,32 +347,44 @@ const TestResult = () => {
       const regexSingle = /^(.*)\((lot_no2|dev_no|bin_no)\)$/;
       const matchPlus = barcodeValue.match(regexPlus);
       const matchSingle = barcodeValue.match(regexSingle);
-      const fieldNames = { lot_no2: '상위 LOT No', dev_no: '장비번호', bin_no: 'BIN No' };
+      const fieldNames = {
+        lot_no2: "상위 LOT No",
+        dev_no: "장비번호",
+        bin_no: "BIN No",
+      };
       let changedData = {};
       let allData = form.getFieldsValue();
 
       if (matchPlus) {
-        let value1 = matchPlus[1], value2 = matchPlus[2];
-        const field1 = matchPlus[3], field2 = matchPlus[4];
-        const fieldName1 = fieldNames[field1] || field1, fieldName2 = fieldNames[field2] || field2;
-        if (field1 === 'lot_no2') {
+        let value1 = matchPlus[1],
+          value2 = matchPlus[2];
+        const field1 = matchPlus[3],
+          field2 = matchPlus[4];
+        const fieldName1 = fieldNames[field1] || field1,
+          fieldName2 = fieldNames[field2] || field2;
+        if (field1 === "lot_no2") {
           value1 = await fetchProductInfoByLotNo2(value1);
           message.success(`${fieldName2} '${value2}' (으)로 설정되었습니다.`);
-        } else if (field2 === 'lot_no2') {
+        } else if (field2 === "lot_no2") {
           value2 = await fetchProductInfoByLotNo2(value2);
           message.success(`${fieldName1} '${value1}' (으)로 설정되었습니다.`);
         } else {
-          message.success(`${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`);
+          message.success(
+            `${fieldName1} '${value1}', ${fieldName2} '${value2}' (으)로 설정되었습니다.`
+          );
         }
         changedData = { [field1]: value1, [field2]: value2 };
       } else if (matchSingle) {
-        const valueToSet = matchSingle[1], fieldToSet = matchSingle[2];
+        const valueToSet = matchSingle[1],
+          fieldToSet = matchSingle[2];
         const fieldName = fieldNames[fieldToSet];
-        if (fieldToSet === 'lot_no2') {
+        if (fieldToSet === "lot_no2") {
           const finalValue = await fetchProductInfoByLotNo2(valueToSet);
           changedData = { [fieldToSet]: finalValue };
         } else {
-          message.success(`${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`);
+          message.success(
+            `${fieldName}가 '${valueToSet}' (으)로 설정되었습니다.`
+          );
           changedData = { [fieldToSet]: valueToSet };
         }
       } else {
@@ -353,10 +394,10 @@ const TestResult = () => {
 
       form.setFieldsValue(changedData);
       allData = form.getFieldsValue();
-      if (changedData.hasOwnProperty('dev_no')) {
+      if (changedData.hasOwnProperty("dev_no")) {
         handleValuesChange(changedData, allData);
       }
-      setBarcodeInputValue('');
+      setBarcodeInputValue("");
       if (barcodeInputRef.current) barcodeInputRef.current.focus();
     }
   };
@@ -365,31 +406,45 @@ const TestResult = () => {
   const fetchProductInfoByLotNo2 = async (lotNo2Value) => {
     if (!lotNo2Value) return lotNo2Value;
     try {
-      const res = await fetch(`/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`);
+      const res = await fetch(
+        `/api/select/etc/lot_no_inform?v_db=${v_db}&lot_no2=${lotNo2Value}`
+      );
       if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
       const data = await res.json();
       if (data && data.length > 0) {
         const product = data[0];
         if (product.jepum_cd) {
           form.setFieldsValue({ jepum_cd: product.jepum_cd });
-          message.success(`제품 '${product.jepum_nm || product.jepum_cd}'이(가) 자동 설정되었습니다.`);
+          message.success(
+            `제품 '${
+              product.jepum_nm || product.jepum_cd
+            }'이(가) 자동 설정되었습니다.`
+          );
         } else {
-          message.warning(`상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`);
+          message.warning(
+            `상위 LOT(${lotNo2Value})에 해당하는 제품 코드가 없습니다.`
+          );
         }
         if (product.bigo39 && product.bigo40) {
           const combinedLotNo2 = `${product.bigo39}-${product.bigo40}`;
-          message.info(`상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`);
+          message.info(
+            `상위 LOT No가 '${combinedLotNo2}'(으)로 자동 설정되었습니다.`
+          );
           return combinedLotNo2;
         }
-        message.success(`상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`);
+        message.success(
+          `상위 LOT No가 '${lotNo2Value}' (으)로 설정되었습니다.`
+        );
         return lotNo2Value;
       } else {
-        message.warning(`상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`);
+        message.warning(
+          `상위 LOT(${lotNo2Value})에 해당하는 제품 정보가 없습니다.`
+        );
         return lotNo2Value;
       }
     } catch (err) {
-      console.error('fetchProductInfoByLotNo2 에러:', err);
-      message.error('제품 정보 조회 중 오류가 발생했습니다.');
+      console.error("fetchProductInfoByLotNo2 에러:", err);
+      message.error("제품 정보 조회 중 오류가 발생했습니다.");
       return lotNo2Value;
     }
   };
@@ -399,21 +454,26 @@ const TestResult = () => {
     fetch(`/api/select/jepum/jepum?v_db=${v_db}`)
       .then((res) => res.json())
       .then((data) => setProductList(data))
-      .catch((err) => console.error('제품 목록 에러:', err));
+      .catch((err) => console.error("제품 목록 에러:", err));
   }, [v_db]);
 
   // 작업자 목록 불러오기
   useEffect(() => {
     const fetchWorkerList = async () => {
       try {
-        const res = await fetch(`/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`);
-        if (!res.ok) throw new Error('작업자 목록 조회 오류');
+        const res = await fetch(
+          `/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`
+        );
+        if (!res.ok) throw new Error("작업자 목록 조회 오류");
         const data = await res.json();
-        const formattedList = data.map(worker => ({ value: worker.emp_nmk, label: worker.emp_nmk }));
+        const formattedList = data.map((worker) => ({
+          value: worker.emp_nmk,
+          label: worker.emp_nmk,
+        }));
         setWorkerList(formattedList);
       } catch (err) {
-        console.error('fetchWorkerList 에러:', err);
-        message.error('작업자 목록을 불러오는 데 실패했습니다.');
+        console.error("fetchWorkerList 에러:", err);
+        message.error("작업자 목록을 불러오는 데 실패했습니다.");
       }
     };
     fetchWorkerList();
@@ -423,16 +483,20 @@ const TestResult = () => {
   // 📌 2-1. [확인] 이 함수가 호출하는 API가 'dev_no'와 'lot_no2'를 반환하는지 확인해야 합니다.
   const fetchTestResults = async (startDate, endDate) => {
     try {
-      const fromParam = startDate ? startDate.format('YYYYMMDD') : '19990101';
-      const toParam = endDate ? endDate.format('YYYYMMDD') : '20991231';
-      const res = await fetch(`/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`);
-      if (!res.ok) throw new Error('TEST 실적 조회 오류');
+      const fromParam = startDate ? startDate.format("YYYYMMDD") : "19990101";
+      const toParam = endDate ? endDate.format("YYYYMMDD") : "20991231";
+      const res = await fetch(
+        `/api/select/etc/test-result?v_db=${v_db}&from_dt=${fromParam}&to_dt=${toParam}`
+      );
+      if (!res.ok) throw new Error("TEST 실적 조회 오류");
       const data = await res.json();
-      data.forEach((item, idx) => { item.key = idx; });
+      data.forEach((item, idx) => {
+        item.key = idx;
+      });
       setTestResults(data);
     } catch (err) {
-      console.error('fetchTestResults 에러:', err);
-      message.error('TEST 실적 조회 중 오류가 발생했습니다.');
+      console.error("fetchTestResults 에러:", err);
+      message.error("TEST 실적 조회 중 오류가 발생했습니다.");
     }
   };
 
@@ -444,14 +508,21 @@ const TestResult = () => {
   // 4) 등록/수정 처리
   const onFinish = async (values) => {
     try {
-      const work_dt = values.work_dt ? values.work_dt.format('YYYY-MM-DD') : null;
+      const work_dt = values.work_dt
+        ? values.work_dt.format("YYYY-MM-DD")
+        : null;
       const bodyPayload = {
-        lot_no: values.lot_no, lot_no2: values.lot_no2, dev_no: values.dev_no,
-        jepum_cd: values.jepum_cd, amt: Number(values.amt) || 0, man_cd: values.man_cd,
-        bin_no: values.bin_no, work_dt,
+        lot_no: values.lot_no,
+        lot_no2: values.lot_no2,
+        dev_no: values.dev_no,
+        jepum_cd: values.jepum_cd,
+        amt: Number(values.amt) || 0,
+        man_cd: values.man_cd,
+        bin_no: values.bin_no,
+        work_dt,
       };
 
-      const product = productList.find(p => p.jepum_cd === values.jepum_cd);
+      const product = productList.find((p) => p.jepum_cd === values.jepum_cd);
 
       const dataForPrint = {
         ...values,
@@ -459,45 +530,57 @@ const TestResult = () => {
         jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
 
-      if (!editingRecord) { // 신규 등록
-        const response = await fetch(`/api/insert/etc/test-result?v_db=${v_db}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyPayload),
-        });
+      if (!editingRecord) {
+        // 신규 등록
+        const response = await fetch(
+          `/api/insert/etc/test-result?v_db=${v_db}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyPayload),
+          }
+        );
         const resData = await response.json();
         if (resData.error) {
           message.error(`등록 실패: ${resData.error}`);
         } else {
-          message.success('등록 성공!');
+          message.success("등록 성공!");
           fetchTestResults(fromDt, toDt); // 📌 2-2. [확인] 등록 후 데이터를 다시 불러옵니다.
-          setModalTitle('등록 완료');
+          setModalTitle("등록 완료");
           setPrintableData(dataForPrint); // 모달 열기
           form.resetFields();
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
         }
-      } else { // 수정
-        const response = await fetch(`/api/update/etc/test-result?v_db=${v_db}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyPayload),
-        });
+      } else {
+        // 수정
+        const response = await fetch(
+          `/api/update/etc/test-result?v_db=${v_db}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyPayload),
+          }
+        );
         const resData = await response.json();
         if (resData.error) {
           message.error(`수정 실패: ${resData.error}`);
         } else {
-          message.success('수정 성공!');
+          message.success("수정 성공!");
           fetchTestResults(fromDt, toDt); // 📌 2-3. [확인] 수정 후 데이터를 다시 불러옵니다.
-          setModalTitle('수정 완료');
+          setModalTitle("수정 완료");
           setPrintableData(dataForPrint); // 모달 열기
           form.resetFields();
           form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
         }
       }
     } catch (error) {
-      console.error('onFinish 에러:', error);
-      message.error('등록/수정 중 오류가 발생했습니다.');
+      console.error("onFinish 에러:", error);
+      message.error("등록/수정 중 오류가 발생했습니다.");
     }
   };
 
   const onFinishFailed = (errorInfo) => {
-    message.error('모든 항목을 올바르게 입력해주세요!');
+    message.error("모든 항목을 올바르게 입력해주세요!");
   };
 
   // 5) 수정
@@ -506,40 +589,44 @@ const TestResult = () => {
     setEditingRecord(record);
     let workDtObj = null;
     if (record.work_dt && record.work_dt.length === 8) {
-      const year = record.work_dt.slice(0, 4), month = record.work_dt.slice(4, 6), day = record.work_dt.slice(6, 8);
-      workDtObj = dayjs(`${year}-${month}-${day}`, 'YYYY-MM-DD');
+      const year = record.work_dt.slice(0, 4),
+        month = record.work_dt.slice(4, 6),
+        day = record.work_dt.slice(6, 8);
+      workDtObj = dayjs(`${year}-${month}-${day}`, "YYYY-MM-DD");
     }
     form.setFieldsValue({
       lot_no: record.lot_no,
       lot_no2: record.lot_no2, // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
-      dev_no: record.dev_no,   // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
+      dev_no: record.dev_no, // 📌 이 값이 API 응답에 없으면 폼이 비워집니다.
       jepum_cd: record.jepum_cd,
       amt: record.amt,
       man_cd: record.man_cd,
       bin_no: record.bigo_1, // (BIN No는 bigo_1 필드를 사용)
       work_dt: workDtObj,
     });
-    setActiveTab('1');
+    setActiveTab("1");
   };
 
   // 6) 삭제
   const handleDelete = (record) => {
     confirm({
-      title: '해당 실적을 삭제하시겠습니까?', okText: '예', cancelText: '아니오',
+      title: "해당 실적을 삭제하시겠습니까?",
+      okText: "예",
+      cancelText: "아니오",
       onOk: async () => {
         try {
           const url = `/api/delete/etc/test-result?v_db=${v_db}&lot_no=${record.lot_no}`;
-          const res = await fetch(url, { method: 'DELETE' });
+          const res = await fetch(url, { method: "DELETE" });
           const resData = await res.json();
           if (resData.error) {
             message.error(`삭제 실패: ${resData.error}`);
           } else {
-            message.success('삭제 성공!');
+            message.success("삭제 성공!");
             fetchTestResults(fromDt, toDt);
           }
         } catch (err) {
-          console.error('삭제 에러:', err);
-          message.error('삭제 중 오류가 발생했습니다.');
+          console.error("삭제 에러:", err);
+          message.error("삭제 중 오류가 발생했습니다.");
         }
       },
     });
@@ -548,43 +635,97 @@ const TestResult = () => {
   // 7) 테이블 컬럼
   const columns = [
     {
-      title: '작업일자', dataIndex: 'work_dt', key: 'work_dt', align: 'center', width: 100,
-      render: (text) => (text && text.length === 8) ? `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}` : text,
+      title: "작업일자",
+      dataIndex: "work_dt",
+      key: "work_dt",
+      align: "center",
+      width: 100,
+      render: (text) =>
+        text && text.length === 8
+          ? `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`
+          : text,
     },
     {
-      title: 'LOT 정보', dataIndex: 'lot_no', key: 'lot_info', align: 'center', width: 120,
+      title: "LOT 정보",
+      dataIndex: "lot_no",
+      key: "lot_info",
+      align: "center",
+      width: 120,
       // 📌 2-5. [확인] 'record.lot_no2'를 사용하도록 설정되어 있습니다.
-      render: (value, record) => (<><div>{value}</div><div style={{ color: 'gray' }}>{record.lot_no2}</div></>),
+      render: (value, record) => (
+        <>
+          <div>{value}</div>
+          <div style={{ color: "gray" }}>{record.lot_no2}</div>
+        </>
+      ),
     },
     {
-      title: '제품', dataIndex: 'jepum_cd', key: 'jepum_cd', align: 'center', width: 140,
+      title: "제품",
+      dataIndex: "jepum_cd",
+      key: "jepum_cd",
+      align: "center",
+      width: 140,
       render: (code) => {
         const prod = productList.find((p) => p.jepum_cd === code);
         return prod ? prod.jepum_nm : code;
       },
     },
     {
-      title: '작업정보', dataIndex: 'amt', key: 'work_info', align: 'center', width: 140,
+      title: "작업정보",
+      dataIndex: "amt",
+      key: "work_info",
+      align: "center",
+      width: 140,
       // 📌 2-6. [확인] 'record.dev_no'를 사용하도록 설정되어 있습니다.
-      render: (value, record) => (<>
-        <div>수량: {value}</div>
-        <div>장비: {record.dev_no}</div>
-        <div>작업자: {record.man_cd}</div>
-        <div>BIN: {record.bigo_1}</div>
-      </>),
+      render: (value, record) => (
+        <>
+          <div>수량: {value}</div>
+          <div>장비: {record.dev_no}</div>
+          <div>작업자: {record.man_cd}</div>
+          <div>BIN: {record.bigo_1}</div>
+        </>
+      ),
     },
     {
-      title: '작업', key: 'action', align: 'center', width: 80,
+      title: "작업",
+      key: "action",
+      align: "center",
+      width: 80,
       render: (_, record) => {
         const popoverContent = (
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-            <Button type="link" onClick={() => { handleEdit(record); setOpenPopoverKey(null); }}>
+          <div
+            style={{
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Button
+              type="link"
+              onClick={() => {
+                handleEdit(record);
+                setOpenPopoverKey(null);
+              }}
+            >
               수정
             </Button>
-            <Button type="link" onClick={() => { handleRePrint(record); setOpenPopoverKey(null); }}>
+            <Button
+              type="link"
+              onClick={() => {
+                handleRePrint(record);
+                setOpenPopoverKey(null);
+              }}
+            >
               재인쇄
             </Button>
-            <Button type="link" danger onClick={() => { setOpenPopoverKey(null); handleDelete(record); }}>
+            <Button
+              type="link"
+              danger
+              onClick={() => {
+                setOpenPopoverKey(null);
+                handleDelete(record);
+              }}
+            >
               삭제
             </Button>
           </div>
@@ -607,10 +748,18 @@ const TestResult = () => {
   return (
     <div style={{ padding: 16 }} id="test-result-container">
       {/* --- 1. 메인 화면 (no-print 유지) --- */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }} className="no-print">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+        className="no-print"
+      >
         <h2>TEST 공정 결과조회</h2>
         <Space>
-          <span style={{ fontSize: '0.9em', color: '#555' }}>가상키보드</span>
+          <span style={{ fontSize: "0.9em", color: "#555" }}>가상키보드</span>
           <Switch
             checkedChildren="ON"
             unCheckedChildren="OFF"
@@ -622,7 +771,6 @@ const TestResult = () => {
 
       {/* --- 2. 탭 (no-print 유지) --- */}
       <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
-
         <TabPane tab="등록" key="1">
           <div className="no-print">
             <Form.Item label="바코드 스캔">
@@ -634,7 +782,7 @@ const TestResult = () => {
                     onPressEnter={handleBarcodeScan}
                     value={barcodeInputValue}
                     onChange={(e) => setBarcodeInputValue(e.target.value)}
-                    inputMode={isVirtualKeyboardOn ? 'text' : 'none'}
+                    inputMode={isVirtualKeyboardOn ? "text" : "none"}
                   />
                 </Col>
                 <Col flex="none">
@@ -645,88 +793,189 @@ const TestResult = () => {
                       checked={barcodeScanOn}
                       onChange={setBarcodeScanOn}
                     />
-                    {barcodeScanOn && <span style={{ color: '#1677ff', fontWeight: 'bold', whiteSpace: 'nowrap' }}>({idleCountdown}초)</span>}
+                    {barcodeScanOn && (
+                      <span
+                        style={{
+                          color: "#1677ff",
+                          fontWeight: "bold",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ({idleCountdown}초)
+                      </span>
+                    )}
                   </Space>
                 </Col>
               </Row>
             </Form.Item>
             <Form
-              form={form} layout="vertical" onFinish={onFinish} onFinishFailed={onFinishFailed}
-              initialValues={{ amt: 20500, work_dt: dayjs() }} style={{ maxWidth: 600 }}
+              form={form}
+              layout="vertical"
+              onFinish={onFinish}
+              onFinishFailed={onFinishFailed}
+              initialValues={{ amt: 20500, work_dt: dayjs() }}
+              style={{ maxWidth: 600 }}
             >
-              <Form.Item label="작업일자" name="work_dt" rules={[{ required: true, message: '작업일자를 선택하세요.' }]}>
-                <DatePicker placeholder="작업일자" style={{ width: '100%' }} format="YYYY-MM-DD" />
+              <Form.Item
+                label="작업일자"
+                name="work_dt"
+                rules={[{ required: true, message: "작업일자를 선택하세요." }]}
+              >
+                <DatePicker
+                  placeholder="작업일자"
+                  style={{ width: "100%" }}
+                  format="YYYY-MM-DD"
+                />
               </Form.Item>
 
-              <Form.Item label="LOT No" name="lot_no" rules={[{ required: true, message: 'LOT No를 입력하세요.' }]}>
-                <Input name="lot_no" placeholder="LOT No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+              <Form.Item
+                label="LOT No"
+                name="lot_no"
+                rules={[{ required: true, message: "LOT No를 입력하세요." }]}
+              >
+                <Input
+                  name="lot_no"
+                  placeholder="LOT No"
+                  inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                />
               </Form.Item>
 
               <Form.Item label="상위 LOT No" name="lot_no2">
-                <Input name="lot_no2" placeholder="상위 LOT No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+                <Input
+                  name="lot_no2"
+                  placeholder="상위 LOT No"
+                  inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                />
               </Form.Item>
 
-              <Form.Item label="제품" name="jepum_cd" rules={[{ required: true, message: '제품을 선택하세요.' }]}>
+              <Form.Item
+                label="제품"
+                name="jepum_cd"
+                rules={[{ required: true, message: "제품을 선택하세요." }]}
+              >
                 <Select
-                  showSearch placeholder="제품 검색" optionFilterProp="children"
+                  showSearch
+                  placeholder="제품 검색"
+                  optionFilterProp="children"
                   open={isProductDropdownOpen}
-                  onFocus={() => { if (!isProductSelectReady) setIsProductSelectReady(true); else setIsProductDropdownOpen(true); }}
-                  onSearch={(value) => { if (value && !isProductDropdownOpen) setIsProductDropdownOpen(true); }}
-                  onBlur={() => { setIsProductDropdownOpen(false); setIsProductSelectReady(false); }}
-                  onSelect={() => { setIsProductDropdownOpen(false); setIsProductSelectReady(false); }}
-                  filterOption={(input, option) => (option?.children ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+                  onFocus={() => {
+                    if (!isProductSelectReady) setIsProductSelectReady(true);
+                    else setIsProductDropdownOpen(true);
+                  }}
+                  onSearch={(value) => {
+                    if (value && !isProductDropdownOpen)
+                      setIsProductDropdownOpen(true);
+                  }}
+                  onBlur={() => {
+                    setIsProductDropdownOpen(false);
+                    setIsProductSelectReady(false);
+                  }}
+                  onSelect={() => {
+                    setIsProductDropdownOpen(false);
+                    setIsProductSelectReady(false);
+                  }}
+                  filterOption={(input, option) =>
+                    (option?.children ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
                 >
                   {productList.map((p) => (
-                    <Option key={p.jepum_cd} value={p.jepum_cd}>{p.jepum_nm} ({p.jepum_cd})</Option>
+                    <Option key={p.jepum_cd} value={p.jepum_cd}>
+                      {p.jepum_nm} ({p.jepum_cd})
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
 
               <Form.Item label="장비번호" name="dev_no">
-                <Input name="dev_no" placeholder="장비번호" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} onBlur={handleDevNoBlur} />
+                <Input
+                  name="dev_no"
+                  placeholder="장비번호"
+                  inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                  onBlur={handleDevNoBlur}
+                />
               </Form.Item>
 
-              <Form.Item label="수량" name="amt"
+              <Form.Item
+                label="수량"
+                name="amt"
                 rules={[
-                  { required: true, message: '수량을 입력하거나 선택하세요.' },
+                  { required: true, message: "수량을 입력하거나 선택하세요." },
                   {
                     validator: (_, value) => {
                       const num = Number(value);
                       if (!value) return Promise.resolve();
-                      if (isNaN(num)) return Promise.reject(new Error('수량은 숫자여야 합니다.'));
-                      if (num < 1) return Promise.reject(new Error('수량은 1 이상이어야 합니다.'));
+                      if (isNaN(num))
+                        return Promise.reject(
+                          new Error("수량은 숫자여야 합니다.")
+                        );
+                      if (num < 1)
+                        return Promise.reject(
+                          new Error("수량은 1 이상이어야 합니다.")
+                        );
                       return Promise.resolve();
                     },
                   },
                 ]}
               >
                 <AutoComplete
-                  options={[{ value: '3050' }, { value: '20500' }]}
-                  filterOption={(inputValue, option) => option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1}
+                  options={[{ value: "3050" }, { value: "20500" }]}
+                  filterOption={(inputValue, option) =>
+                    option.value
+                      .toUpperCase()
+                      .indexOf(inputValue.toUpperCase()) !== -1
+                  }
                 >
-                  <Input placeholder="수량을 입력하거나 선택하세요" inputMode="numeric" onFocus={() => form.setFieldsValue({ amt: '' })} />
+                  <Input
+                    placeholder="수량을 입력하거나 선택하세요"
+                    inputMode="numeric"
+                    onFocus={() => form.setFieldsValue({ amt: "" })}
+                  />
                 </AutoComplete>
               </Form.Item>
 
-              <Form.Item label="BIN No" name="bin_no" rules={[{ required: true, message: 'BIN No를 입력하세요.' }]}>
-                <Input name="bin_no" placeholder="BIN No" inputMode={isVirtualKeyboardOn ? 'text' : 'none'} />
+              <Form.Item
+                label="BIN No"
+                name="bin_no"
+                rules={[{ required: true, message: "BIN No를 입력하세요." }]}
+              >
+                <Input
+                  name="bin_no"
+                  placeholder="BIN No"
+                  inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                />
               </Form.Item>
 
-              <Form.Item label="작업자" name="man_cd" rules={[{ required: true, message: '작업자를 선택하세요.' }]}>
+              <Form.Item
+                label="작업자"
+                name="man_cd"
+                rules={[{ required: true, message: "작업자를 선택하세요." }]}
+              >
                 <Select placeholder="작업자 선택" options={workerList} />
               </Form.Item>
 
               <Form.Item>
-                <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
-                  {editingRecord ? '수정하기' : '등록하기'}
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  style={{ marginRight: 8 }}
+                >
+                  {editingRecord ? "수정하기" : "등록하기"}
                 </Button>
-                <Button onClick={() => {
-                  form.resetFields();
-                  setEditingRecord(null);
-                  form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
-                  setBarcodeInputValue('');
-                  if (barcodeScanOn && barcodeInputRef.current) barcodeInputRef.current.focus();
-                }}>초기화</Button>
+                <Button
+                  onClick={() => {
+                    form.resetFields();
+                    setEditingRecord(null);
+                    form.setFieldsValue({ work_dt: dayjs(), amt: 20500 });
+                    setBarcodeInputValue("");
+                    if (barcodeScanOn && barcodeInputRef.current)
+                      barcodeInputRef.current.focus();
+                  }}
+                >
+                  초기화
+                </Button>
               </Form.Item>
             </Form>
           </div>
@@ -734,15 +983,44 @@ const TestResult = () => {
 
         <TabPane tab="조회" key="2">
           <div className="no-print">
-            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
-              <Row style={{ flexFlow: 'row nowrap' }} gutter={8}>
-                <Col span={9}><DatePicker value={fromDt} format="YYYY-MM-DD" onChange={(date) => setFromDt(date)} /></Col>
-                <span style={{ margin: '5px 2px' }}>~</span>
-                <Col span={9}><DatePicker value={toDt} format="YYYY-MM-DD" onChange={(date) => setToDt(date)} /></Col>
-                <Col span={8}><Button type="primary" onClick={() => fetchTestResults(fromDt, toDt)}>조회</Button></Col>
+            <div
+              style={{
+                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Row style={{ flexFlow: "row nowrap" }} gutter={8}>
+                <Col span={9}>
+                  <DatePicker
+                    value={fromDt}
+                    format="YYYY-MM-DD"
+                    onChange={(date) => setFromDt(date)}
+                  />
+                </Col>
+                <span style={{ margin: "5px 2px" }}>~</span>
+                <Col span={9}>
+                  <DatePicker
+                    value={toDt}
+                    format="YYYY-MM-DD"
+                    onChange={(date) => setToDt(date)}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Button
+                    type="primary"
+                    onClick={() => fetchTestResults(fromDt, toDt)}
+                  >
+                    조회
+                  </Button>
+                </Col>
               </Row>
             </div>
-            <Table columns={columns} dataSource={testResults} pagination={{ pageSize: 10 }} />
+            <Table
+              columns={columns}
+              dataSource={testResults}
+              pagination={{ pageSize: 10 }}
+            />
           </div>
         </TabPane>
       </Tabs>
@@ -758,23 +1036,32 @@ const TestResult = () => {
       >
         <div className="modal-print-preview-content">
           <p>
-            {modalTitle.includes('완료')
+            {modalTitle.includes("완료")
               ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
-              : `다음 라벨을 재인쇄합니다.`
-            }
+              : `다음 라벨을 재인쇄합니다.`}
           </p>
-          <hr style={{ margin: '16px 0' }} />
+          <hr style={{ margin: "16px 0" }} />
 
-          <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>인쇄 미리보기 (80mm x 24mm)</h3>
+          <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
+            인쇄 미리보기 (80mm x 24mm)
+          </h3>
 
-          <div style={{ margin: '20px 0', display: 'flex', justifyContent: 'center' }}>
-            {printableData && (
-              <LabelToPrint data={printableData} />
-            )}
+          <div
+            style={{
+              margin: "20px 0",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            {printableData && <LabelToPrint data={printableData} />}
           </div>
 
-          <div style={{ textAlign: 'right', marginTop: '24px' }}>
-            <Button key="close" onClick={handleModalClose} style={{ marginRight: 8 }}>
+          <div style={{ textAlign: "right", marginTop: "24px" }}>
+            <Button
+              key="close"
+              onClick={handleModalClose}
+              style={{ marginRight: 8 }}
+            >
               닫기
             </Button>
             <Button key="print" type="primary" onClick={handleSimplePrint}>
@@ -783,7 +1070,6 @@ const TestResult = () => {
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };
