@@ -58,8 +58,8 @@ const LabelToPrint = ({ data }) => {
   // --- 1. 상단 영역 (긴 항목) ---
   const topTableStyle = {
     ...tableStyle,
-    flex: 1,
-    height: "100%",
+    // flex: 1,
+    // height: "100%",
   };
   const thStyle = {
     border: "1px solid #333",
