@@ -783,18 +783,16 @@ const TappingProcessWork = () => {
           <h3 style={{ marginBottom: 20 }}>
             Reel 1개당 감길 수량을 선택하세요.
           </h3>
+
+          {/* 💥 수정 포인트: style={{ marginRight: 8 }} 제거 */}
           <Radio.Group
             onChange={(e) => setReelSelection(e.target.value)}
             value={reelSelection}
             size="large"
             buttonStyle="solid"
           >
-            <Radio.Button value={4000} style={{ marginRight: 8 }}>
-              4,000개
-            </Radio.Button>
-            <Radio.Button value={5000} style={{ marginRight: 8 }}>
-              5,000개
-            </Radio.Button>
+            <Radio.Button value={4000}>4,000개</Radio.Button>
+            <Radio.Button value={5000}>5,000개</Radio.Button>
             <Radio.Button value="custom">직접 입력</Radio.Button>
           </Radio.Group>
 
