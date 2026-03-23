@@ -15,9 +15,10 @@ import {
   Popover,
   Switch,
   Space,
+  Radio,
 } from "antd";
 import dayjs from "dayjs";
-import { QRCodeSVG } from "qrcode.react"; // 📌 QR코드 출력을 위한 라이브러리 추가
+import { QRCodeSVG } from "qrcode.react";
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
@@ -195,7 +196,7 @@ const TappingProcessWork = () => {
   const [toDt, setToDt] = useState(dayjs());
   const [productList, setProductList] = useState([]);
 
-  // --- 인쇄를 위한 State 추가 ---
+  // --- 인쇄를 위한 State ---
   const [printableData, setPrintableData] = useState(null);
   const [modalTitle, setModalTitle] = useState("등록/수정 완료");
   const [openPopoverKey, setOpenPopoverKey] = useState(null);
@@ -208,6 +209,11 @@ const TappingProcessWork = () => {
   const barcodeInputRef = useRef(null);
   const idleTimerRef = useRef(null);
   const countdownTimerRef = useRef(null);
+
+  // --- Reel당 수량 선택 팝업 관리를 위한 State ---
+  const [isReelModalVisible, setIsReelModalVisible] = useState(false);
+  const [reelSelection, setReelSelection] = useState(4000);
+  const [customReelAmt, setCustomReelAmt] = useState(3000);
 
   const v_db = "16_UR";
 
@@ -231,7 +237,6 @@ const TappingProcessWork = () => {
     }
   };
 
-  // 재인쇄 버튼 클릭
   const handleRePrint = (record) => {
     const product = productList.find((p) => p.jepum_cd === record.jepum_cd);
     setModalTitle("라벨 재인쇄");
@@ -239,7 +244,7 @@ const TappingProcessWork = () => {
       lot_no: record.lot_no,
       jepum_nm: product ? product.jepum_nm : record.jepum_cd,
       amt: record.amt,
-      reel_min_amt: record.reel_min_amt || record.amt, // DB 구조에 따라 없을 경우 기본값 세팅
+      reel_min_amt: record.reel_min_amt || record.amt,
       bin_no: record.bigo_1 || record.bin_no,
       man_cd: record.man_cd,
     });
@@ -254,7 +259,7 @@ const TappingProcessWork = () => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-      if (!barcodeScanOn || activeTab !== "1") return;
+      if (!barcodeScanOn || activeTab !== "1" || isReelModalVisible) return;
       setIdleCountdown(10);
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown((prev) => Math.max(0, prev - 1));
@@ -284,7 +289,7 @@ const TappingProcessWork = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
     }
-  }, [barcodeScanOn, activeTab]);
+  }, [barcodeScanOn, activeTab, isReelModalVisible]);
 
   // --- 2) 바코드 스캔 처리 ---
   const handleBarcodeScan = async (e) => {
@@ -314,13 +319,49 @@ const TappingProcessWork = () => {
         let updateData = {};
         if (data.jepum_cd) updateData.jepum_cd = data.jepum_cd;
         if (data.bin_no) updateData.bin_no = data.bin_no;
+        if (data.amt) updateData.amt = data.amt;
 
         form.setFieldsValue(updateData);
-        message.success("TEST 라벨 정보가 세팅되었습니다.");
+        message.success("TEST 라벨 정보(수량 포함)가 세팅되었습니다.");
+
+        setReelSelection(4000);
+        setIsReelModalVisible(true);
       }
     } catch (err) {
       console.error(err);
       message.error("LOT 체크 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 📌 [수정] Reel당 수량 모달 확인 버튼 핸들러 (Math.floor로 내림 처리)
+  const handleReelModalOk = () => {
+    const finalReelAmt =
+      reelSelection === "custom" ? customReelAmt : reelSelection;
+    const totalAmt = form.getFieldValue("amt") || 0;
+
+    // 1. 폼에 Reel당 수량 세팅
+    form.setFieldsValue({ reel_min_amt: finalReelAmt });
+
+    // 2. 총수량을 Reel당 수량으로 나누어 꽉 찬 Reel 개수만 계산 (내림 처리)
+    if (finalReelAmt > 0) {
+      form.setFieldsValue({ reel_count: Math.floor(totalAmt / finalReelAmt) });
+    }
+
+    setIsReelModalVisible(false);
+  };
+
+  // 📌 [수정] 폼에서 수동으로 변경할 때도 Math.floor(내림) 적용
+  const handleFormValuesChange = (changedValues, allValues) => {
+    if (
+      changedValues.hasOwnProperty("amt") ||
+      changedValues.hasOwnProperty("reel_min_amt")
+    ) {
+      const totalAmt = allValues.amt || 0;
+      const reelMinAmt = allValues.reel_min_amt || 1;
+
+      if (reelMinAmt > 0) {
+        form.setFieldsValue({ reel_count: Math.floor(totalAmt / reelMinAmt) });
+      }
     }
   };
 
@@ -379,7 +420,7 @@ const TappingProcessWork = () => {
           message.success("등록성공");
           fetchTapingResults(fromDt, toDt);
           setModalTitle("등록 완료");
-          setPrintableData(dataForPrint); // 📌 출력 모달 띄우기
+          setPrintableData(dataForPrint);
           form.resetFields();
         }
       } else {
@@ -395,7 +436,7 @@ const TappingProcessWork = () => {
           message.success("수정성공");
           fetchTapingResults(fromDt, toDt);
           setModalTitle("수정 완료");
-          setPrintableData(dataForPrint); // 📌 출력 모달 띄우기
+          setPrintableData(dataForPrint);
           form.resetFields();
         }
       }
@@ -413,9 +454,11 @@ const TappingProcessWork = () => {
     setEditingRecord(record);
     form.setFieldsValue({
       lot_no: record.lot_no,
-      reel_count: 1,
+      amt: record.amt,
+      reel_min_amt: record.reel_min_amt || record.amt,
+      reel_count: record.lot_seq || 1,
       man_cd: record.man_cd,
-      bin_no: record.bigo_1,
+      bin_no: record.bigo_1 || record.bin_no,
       jepum_cd: record.jepum_cd,
     });
     setActiveTab("1");
@@ -469,8 +512,8 @@ const TappingProcessWork = () => {
       width: 120,
       render: (value, record) => (
         <>
-          <div>{value}</div>
-          <div>{record.lot_seq}</div>
+          <div>총: {value}</div>
+          <div>{record.lot_seq} Reel</div>
           <div>{record.man_cd}</div>
         </>
       ),
@@ -535,8 +578,6 @@ const TappingProcessWork = () => {
 
   return (
     <div style={{ padding: 16 }} id="test-result-container">
-      {" "}
-      {/* CSS 인쇄 제어를 위해 id 추가 */}
       <div
         style={{
           display: "flex",
@@ -557,6 +598,7 @@ const TappingProcessWork = () => {
           />
         </Space>
       </div>
+
       <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
         <TabPane tab="등록" key="1">
           <Form.Item label="바코드 스캔 (TEST 라벨)">
@@ -602,6 +644,7 @@ const TappingProcessWork = () => {
             onFinishFailed={onFinishFailed}
             initialValues={{ amt: 0, reel_count: 1, reel_min_amt: 0 }}
             style={{ maxWidth: 600 }}
+            onValuesChange={handleFormValuesChange}
           >
             <Form.Item
               label="LOT NO"
@@ -655,18 +698,18 @@ const TappingProcessWork = () => {
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
-              label="Reel 개수"
-              name="reel_count"
-              rules={[{ required: true, message: "Reel 수" }]}
-            >
-              <InputNumber min={1} style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item
               label="Reel당 수량"
               name="reel_min_amt"
               rules={[{ required: true, message: "Reel당 수량" }]}
             >
               <InputNumber min={1} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item
+              label="Reel 개수 (자동계산: 꽉 찬 Reel 기준)"
+              name="reel_count"
+              rules={[{ required: true, message: "Reel 수" }]}
+            >
+              <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               label="작업자"
@@ -724,6 +767,58 @@ const TappingProcessWork = () => {
           />
         </TabPane>
       </Tabs>
+
+      {/* --- 📌 Reel당 수량 선택 팝업 모달 --- */}
+      <Modal
+        title="Reel당 수량 선택"
+        open={isReelModalVisible}
+        onOk={handleReelModalOk}
+        onCancel={() => setIsReelModalVisible(false)}
+        okText="적용"
+        cancelText="취소"
+        getContainer={false}
+        centered
+      >
+        <div style={{ padding: "20px 0", textAlign: "center" }}>
+          <h3 style={{ marginBottom: 20 }}>
+            Reel 1개당 감길 수량을 선택하세요.
+          </h3>
+          <Radio.Group
+            onChange={(e) => setReelSelection(e.target.value)}
+            value={reelSelection}
+            size="large"
+            buttonStyle="solid"
+          >
+            <Radio.Button value={4000} style={{ marginRight: 8 }}>
+              4,000개
+            </Radio.Button>
+            <Radio.Button value={5000} style={{ marginRight: 8 }}>
+              5,000개
+            </Radio.Button>
+            <Radio.Button value="custom">직접 입력</Radio.Button>
+          </Radio.Group>
+
+          {reelSelection === "custom" && (
+            <div style={{ marginTop: 20 }}>
+              <span style={{ marginRight: 10, fontWeight: "bold" }}>
+                수량 입력:
+              </span>
+              <InputNumber
+                min={1}
+                value={customReelAmt}
+                onChange={setCustomReelAmt}
+                size="large"
+                inputMode={isVirtualKeyboardOn ? "numeric" : "none"}
+                style={{ width: "150px" }}
+              />
+            </div>
+          )}
+          <p style={{ marginTop: 15, color: "#888", fontSize: "12px" }}>
+            선택 시 총수량에 비례하여 꽉 찬 Reel 개수가 자동 계산됩니다.
+          </p>
+        </div>
+      </Modal>
+
       {/* --- 📌 인쇄 미리보기 모달 --- */}
       <Modal
         title={modalTitle}
