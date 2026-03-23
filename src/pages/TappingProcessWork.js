@@ -17,10 +17,174 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
+import { QRCodeSVG } from "qrcode.react"; // 📌 QR코드 출력을 위한 라이브러리 추가
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
 const { Option } = Select;
+
+// ------------------------------------------------------------------
+// 📌 TAPPING 전용 LabelToPrint 컴포넌트 (50x30 라벨 규격 적용)
+// ------------------------------------------------------------------
+const LabelToPrint = ({ data }) => {
+  if (!data) return null;
+
+  const labelStyle = {
+    width: "50mm",
+    height: "30mm",
+    padding: "0.5mm 0.3mm",
+    boxSizing: "border-box",
+    fontFamily: "Malgun Gothic, Arial, sans-serif",
+    fontSize: "7pt",
+    fontWeight: "bold",
+    lineHeight: 1.1,
+    position: "relative",
+    border: "1px dashed #999",
+    backgroundColor: "white",
+    color: "black",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+  };
+
+  const tableStyle = {
+    width: "100%",
+    borderCollapse: "collapse",
+    tableLayout: "fixed",
+  };
+
+  const thStyle = {
+    border: "1px solid #333",
+    padding: "0.4mm 0.5mm",
+    fontSize: "7pt",
+    fontWeight: "bold",
+    whiteSpace: "nowrap",
+    textAlign: "left",
+    width: "25%",
+    backgroundColor: "#eee",
+  };
+  const tdWideStyle = {
+    border: "1px solid #333",
+    padding: "0.4mm 0.5mm",
+    fontSize: "7pt",
+    fontWeight: "bold",
+    verticalAlign: "middle",
+    width: "85%",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+
+  const bottomContainerStyle = {
+    display: "flex",
+    width: "100%",
+    border: "1px solid #333",
+    borderTop: "none",
+  };
+  const leftInfoStyle = { width: "60%", height: "100%" };
+  const nestedTableStyle = { ...tableStyle, height: "100%" };
+
+  const nestedThStyle = {
+    ...thStyle,
+    padding: "0.4mm 0.5mm",
+    width: "45%",
+    borderTop: "none",
+    borderLeft: "none",
+  };
+  const nestedTdStyle = {
+    ...tdWideStyle,
+    padding: "0.4mm 0.5mm",
+    width: "75%",
+    borderTop: "none",
+    borderRight: "none",
+  };
+
+  const rightQrStyle = {
+    width: "40%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "0.5mm",
+    boxSizing: "border-box",
+    borderLeft: "1px solid #333",
+  };
+
+  const qrSize = 10; // 10mm
+  const formattedReelAmt = data.reel_min_amt
+    ? Number(data.reel_min_amt).toLocaleString("en-US")
+    : "0";
+  const formattedTotalAmt = data.amt
+    ? Number(data.amt).toLocaleString("en-US")
+    : "0";
+
+  return (
+    <div style={labelStyle} className="label-print-container-class">
+      <table style={{ ...tableStyle }}>
+        <tbody>
+          <tr>
+            <th style={thStyle}>모델명</th>
+            <td
+              style={{
+                ...tdWideStyle,
+                whiteSpace: "normal",
+                wordBreak: "break-all",
+              }}
+            >
+              {data.jepum_nm}
+            </td>
+          </tr>
+          <tr>
+            <th style={thStyle}>LOT NO</th>
+            <td style={tdWideStyle}>{data.lot_no}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style={bottomContainerStyle}>
+        <div style={leftInfoStyle}>
+          <table style={nestedTableStyle}>
+            <tbody>
+              <tr>
+                <th style={{ ...nestedThStyle, borderBottom: "none" }}>
+                  BIN번호
+                </th>
+                <td style={{ ...nestedTdStyle, borderBottom: "none" }}>
+                  {data.bin_no || ""}
+                </td>
+              </tr>
+              <tr>
+                <th style={nestedThStyle}>릴당수량</th>
+                <td style={nestedTdStyle}>{formattedReelAmt}</td>
+              </tr>
+              <tr>
+                <th style={nestedThStyle}>총수량</th>
+                <td style={nestedTdStyle}>{formattedTotalAmt}</td>
+              </tr>
+              <tr>
+                <th style={nestedThStyle}>작업자</th>
+                <td style={nestedTdStyle}>{data.man_cd}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style={rightQrStyle}>
+          <QRCodeSVG
+            value={data.lot_no || "N/A"}
+            size={qrSize * 3.78}
+            style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
+            level="M"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ------------------------------------------------------------------
+// (이하 TappingProcessWork 메인 컴포넌트)
+// ------------------------------------------------------------------
 
 const TappingProcessWork = () => {
   const [form] = Form.useForm();
@@ -30,6 +194,11 @@ const TappingProcessWork = () => {
   const [fromDt, setFromDt] = useState(dayjs().startOf("month"));
   const [toDt, setToDt] = useState(dayjs());
   const [productList, setProductList] = useState([]);
+
+  // --- 인쇄를 위한 State 추가 ---
+  const [printableData, setPrintableData] = useState(null);
+  const [modalTitle, setModalTitle] = useState("등록/수정 완료");
+  const [openPopoverKey, setOpenPopoverKey] = useState(null);
 
   // --- 바코드 및 포커스 관리를 위한 State & Ref ---
   const [isVirtualKeyboardOn, setIsVirtualKeyboardOn] = useState(false);
@@ -49,6 +218,36 @@ const TappingProcessWork = () => {
       .then((data) => setProductList(data))
       .catch((err) => console.error("제품목록 에러:", err));
   }, [v_db]);
+
+  // --- 인쇄 관련 핸들러 ---
+  const handleSimplePrint = () => {
+    window.print();
+  };
+  const handleModalClose = () => {
+    setPrintableData(null);
+    if (editingRecord) {
+      setActiveTab("2");
+      setEditingRecord(null);
+    }
+  };
+
+  // 재인쇄 버튼 클릭
+  const handleRePrint = (record) => {
+    const product = productList.find((p) => p.jepum_cd === record.jepum_cd);
+    setModalTitle("라벨 재인쇄");
+    setPrintableData({
+      lot_no: record.lot_no,
+      jepum_nm: product ? product.jepum_nm : record.jepum_cd,
+      amt: record.amt,
+      reel_min_amt: record.reel_min_amt || record.amt, // DB 구조에 따라 없을 경우 기본값 세팅
+      bin_no: record.bigo_1 || record.bin_no,
+      man_cd: record.man_cd,
+    });
+  };
+
+  const handlePopoverChange = (visible, key) => {
+    setOpenPopoverKey(visible ? key : null);
+  };
 
   // --- 유휴 상태 감지 및 바코드 입력창 자동 포커스 ---
   useEffect(() => {
@@ -87,31 +286,22 @@ const TappingProcessWork = () => {
     }
   }, [barcodeScanOn, activeTab]);
 
-  // --- 2) 바코드 스캔 처리 (TEST 라벨 스캔 시 자동 연동) ---
+  // --- 2) 바코드 스캔 처리 ---
   const handleBarcodeScan = async (e) => {
     const barcodeValue = barcodeInputValue.trim();
     if (barcodeValue) {
-      // 스캔된 값을 LOT NO에 세팅
       form.setFieldsValue({ lot_no: barcodeValue });
-      setBarcodeInputValue(""); // 입력창 초기화
-
-      // 정보 조회 API 호출
+      setBarcodeInputValue("");
       await fetchLotInfo(barcodeValue);
-
-      // 다시 바코드 창으로 포커스
       if (barcodeInputRef.current) barcodeInputRef.current.focus();
     }
   };
 
-  // LOT NO 수동 입력 후 포커스 아웃 시에도 연동되도록 지원
   const handleLotNoBlur = async (e) => {
     const lotNoValue = e.target.value.trim();
-    if (lotNoValue) {
-      await fetchLotInfo(lotNoValue);
-    }
+    if (lotNoValue) await fetchLotInfo(lotNoValue);
   };
 
-  // TEST 공정 정보 가져와서 폼에 자동 세팅
   const fetchLotInfo = async (lotNoValue) => {
     try {
       const url = `/api/select/etc/tapping-check-lot?v_db=${v_db}&lot_no=${lotNoValue}`;
@@ -125,7 +315,6 @@ const TappingProcessWork = () => {
         if (data.jepum_cd) updateData.jepum_cd = data.jepum_cd;
         if (data.bin_no) updateData.bin_no = data.bin_no;
 
-        // 정보 세팅
         form.setFieldsValue(updateData);
         message.success("TEST 라벨 정보가 세팅되었습니다.");
       }
@@ -156,7 +345,6 @@ const TappingProcessWork = () => {
 
   useEffect(() => {
     fetchTapingResults(fromDt, toDt);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDt, toDt]);
 
   // 4) 등록/수정
@@ -172,8 +360,13 @@ const TappingProcessWork = () => {
         jepum_cd: values.jepum_cd || "",
       };
 
+      const product = productList.find((p) => p.jepum_cd === values.jepum_cd);
+      const dataForPrint = {
+        ...values,
+        jepum_nm: product ? product.jepum_nm : values.jepum_cd,
+      };
+
       if (!editingRecord) {
-        // 신규 등록
         const res = await fetch(`/api/insert/etc/tapping-result?v_db=${v_db}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -185,11 +378,11 @@ const TappingProcessWork = () => {
         } else {
           message.success("등록성공");
           fetchTapingResults(fromDt, toDt);
+          setModalTitle("등록 완료");
+          setPrintableData(dataForPrint); // 📌 출력 모달 띄우기
           form.resetFields();
-          setActiveTab("2");
         }
       } else {
-        // 수정
         const res = await fetch(`/api/update/etc/tapping-result?v_db=${v_db}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -201,9 +394,9 @@ const TappingProcessWork = () => {
         } else {
           message.success("수정성공");
           fetchTapingResults(fromDt, toDt);
+          setModalTitle("수정 완료");
+          setPrintableData(dataForPrint); // 📌 출력 모달 띄우기
           form.resetFields();
-          setEditingRecord(null);
-          setActiveTab("2");
         }
       }
     } catch (err) {
@@ -216,7 +409,6 @@ const TappingProcessWork = () => {
     message.error("필수항목을 확인해주세요");
   };
 
-  // 5) 수정 및 삭제 핸들러
   const handleEdit = (record) => {
     setEditingRecord(record);
     form.setFieldsValue({
@@ -237,9 +429,8 @@ const TappingProcessWork = () => {
           const url = `/api/delete/etc/tapping-result?v_db=${v_db}&lot_no=${record.lot_no}`;
           const res = await fetch(url, { method: "DELETE" });
           const data = await res.json();
-          if (data.error) {
-            message.error(`삭제실패: ${data.error}`);
-          } else {
+          if (data.error) message.error(`삭제실패: ${data.error}`);
+          else {
             message.success("삭제성공");
             fetchTapingResults(fromDt, toDt);
           }
@@ -258,14 +449,10 @@ const TappingProcessWork = () => {
       dataIndex: "work_dt",
       key: "work_dt",
       align: "center",
-      render: (text) => {
-        if (text && text.length === 8) {
-          return (
-            text.slice(0, 4) + "-" + text.slice(4, 6) + "-" + text.slice(6, 8)
-          );
-        }
-        return text;
-      },
+      render: (text) =>
+        text && text.length === 8
+          ? `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`
+          : text,
     },
     { title: "LOT NO", dataIndex: "lot_no", key: "lot_no", align: "center" },
     {
@@ -280,15 +467,13 @@ const TappingProcessWork = () => {
       key: "amtMan",
       align: "center",
       width: 120,
-      render: (value, record) => {
-        return (
-          <>
-            <div>{value}</div>
-            <div>{record.lot_seq}</div>
-            <div>{record.man_cd}</div>
-          </>
-        );
-      },
+      render: (value, record) => (
+        <>
+          <div>{value}</div>
+          <div>{record.lot_seq}</div>
+          <div>{record.man_cd}</div>
+        </>
+      ),
     },
     {
       title: "작업",
@@ -297,17 +482,50 @@ const TappingProcessWork = () => {
       width: 80,
       render: (_, record) => {
         const popoverContent = (
-          <div style={{ textAlign: "center" }}>
-            <Button type="link" onClick={() => handleEdit(record)}>
+          <div
+            style={{
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Button
+              type="link"
+              onClick={() => {
+                handleEdit(record);
+                setOpenPopoverKey(null);
+              }}
+            >
               수정
             </Button>
-            <Button type="link" danger onClick={() => handleDelete(record)}>
+            <Button
+              type="link"
+              onClick={() => {
+                handleRePrint(record);
+                setOpenPopoverKey(null);
+              }}
+            >
+              재인쇄
+            </Button>
+            <Button
+              type="link"
+              danger
+              onClick={() => {
+                handleDelete(record);
+                setOpenPopoverKey(null);
+              }}
+            >
               삭제
             </Button>
           </div>
         );
         return (
-          <Popover content={popoverContent} trigger="click">
+          <Popover
+            content={popoverContent}
+            trigger="click"
+            open={openPopoverKey === record.key}
+            onOpenChange={(visible) => handlePopoverChange(visible, record.key)}
+          >
             <Button>+</Button>
           </Popover>
         );
@@ -316,7 +534,9 @@ const TappingProcessWork = () => {
   ];
 
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ padding: 16 }} id="test-result-container">
+      {" "}
+      {/* CSS 인쇄 제어를 위해 id 추가 */}
       <div
         style={{
           display: "flex",
@@ -324,9 +544,9 @@ const TappingProcessWork = () => {
           alignItems: "center",
           marginBottom: 16,
         }}
+        className="no-print"
       >
         <h2>Tapping 공정 작업실적 등록</h2>
-        {/* --- TEST 공정과 동일한 가상 키보드 스위치 추가 --- */}
         <Space>
           <span style={{ fontSize: "0.9em", color: "#555" }}>가상키보드</span>
           <Switch
@@ -337,10 +557,8 @@ const TappingProcessWork = () => {
           />
         </Space>
       </div>
-
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
+      <Tabs activeKey={activeTab} onChange={setActiveTab} className="no-print">
         <TabPane tab="등록" key="1">
-          {/* --- 스캐너 전용 입력란 추가 --- */}
           <Form.Item label="바코드 스캔 (TEST 라벨)">
             <Row gutter={8} align="middle" wrap={false}>
               <Col flex="auto">
@@ -382,11 +600,7 @@ const TappingProcessWork = () => {
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{
-              amt: 0,
-              reel_count: 1,
-              reel_min_amt: 0,
-            }}
+            initialValues={{ amt: 0, reel_count: 1, reel_min_amt: 0 }}
             style={{ maxWidth: 600 }}
           >
             <Form.Item
@@ -400,7 +614,6 @@ const TappingProcessWork = () => {
                 inputMode={isVirtualKeyboardOn ? "text" : "none"}
               />
             </Form.Item>
-
             <Form.Item
               label="제품"
               name="jepum_cd"
@@ -410,12 +623,12 @@ const TappingProcessWork = () => {
                 showSearch
                 placeholder="제품 선택 (스캔 시 자동입력)"
                 optionFilterProp="children"
-                filterOption={(input, option) => {
-                  const label = (option?.children ?? "")
+                filterOption={(input, option) =>
+                  (option?.children ?? "")
                     .toString()
-                    .toLowerCase();
-                  return label.includes(input.toLowerCase());
-                }}
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               >
                 {productList.map((item) => (
                   <Option key={item.jepum_cd} value={item.jepum_cd}>
@@ -424,7 +637,6 @@ const TappingProcessWork = () => {
                 ))}
               </Select>
             </Form.Item>
-
             <Form.Item
               label="BIN NO"
               name="bin_no"
@@ -435,7 +647,6 @@ const TappingProcessWork = () => {
                 inputMode={isVirtualKeyboardOn ? "text" : "none"}
               />
             </Form.Item>
-
             <Form.Item
               label="총수량"
               name="amt"
@@ -443,7 +654,6 @@ const TappingProcessWork = () => {
             >
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
-
             <Form.Item
               label="Reel 개수"
               name="reel_count"
@@ -451,7 +661,6 @@ const TappingProcessWork = () => {
             >
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
-
             <Form.Item
               label="Reel당 수량"
               name="reel_min_amt"
@@ -459,7 +668,6 @@ const TappingProcessWork = () => {
             >
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
-
             <Form.Item
               label="작업자"
               name="man_cd"
@@ -467,7 +675,6 @@ const TappingProcessWork = () => {
             >
               <Input inputMode={isVirtualKeyboardOn ? "text" : "none"} />
             </Form.Item>
-
             <Form.Item>
               <Button
                 type="primary"
@@ -480,7 +687,6 @@ const TappingProcessWork = () => {
             </Form.Item>
           </Form>
         </TabPane>
-
         <TabPane tab="조회" key="2">
           <div
             style={{ marginBottom: 16, display: "flex", alignItems: "center" }}
@@ -518,6 +724,50 @@ const TappingProcessWork = () => {
           />
         </TabPane>
       </Tabs>
+      {/* --- 📌 인쇄 미리보기 모달 --- */}
+      <Modal
+        title={modalTitle}
+        open={!!printableData}
+        onCancel={handleModalClose}
+        width={400}
+        footer={null}
+        getContainer={false}
+      >
+        <div className="modal-print-preview-content">
+          <p>
+            {modalTitle.includes("완료")
+              ? `다음 정보가 성공적으로 ${modalTitle}되었습니다.`
+              : `다음 라벨을 재인쇄합니다.`}
+          </p>
+          <hr style={{ margin: "16px 0" }} />
+          <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
+            인쇄 미리보기 (50mm x 30mm)
+          </h3>
+
+          <div
+            style={{
+              margin: "20px 0",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            {printableData && <LabelToPrint data={printableData} />}
+          </div>
+
+          <div style={{ textAlign: "right", marginTop: "24px" }}>
+            <Button
+              key="close"
+              onClick={handleModalClose}
+              style={{ marginRight: 8 }}
+            >
+              닫기
+            </Button>
+            <Button key="print" type="primary" onClick={handleSimplePrint}>
+              라벨 인쇄
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
