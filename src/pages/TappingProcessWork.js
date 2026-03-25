@@ -25,7 +25,7 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// 📌 TAPPING 전용 LabelToPrint 컴포넌트 (50x30 라벨 규격 적용)
+// 📌 TAPPING 전용 LabelToPrint 컴포넌트 (수정됨: 릴 수량만 표시)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
@@ -113,11 +113,9 @@ const LabelToPrint = ({ data }) => {
   };
 
   const qrSize = 10; // 10mm
-  const formattedReelAmt = data.reel_min_amt
+  // 💥 수정: 릴에 감긴 수량(reel_min_amt)을 '수량'으로 단일 표기합니다.
+  const formattedAmt = data.reel_min_amt
     ? Number(data.reel_min_amt).toLocaleString("en-US")
-    : "0";
-  const formattedTotalAmt = data.amt
-    ? Number(data.amt).toLocaleString("en-US")
     : "0";
 
   return (
@@ -156,12 +154,8 @@ const LabelToPrint = ({ data }) => {
                 </td>
               </tr>
               <tr>
-                <th style={nestedThStyle}>릴당수량</th>
-                <td style={nestedTdStyle}>{formattedReelAmt}</td>
-              </tr>
-              <tr>
-                <th style={nestedThStyle}>총수량</th>
-                <td style={nestedTdStyle}>{formattedTotalAmt}</td>
+                <th style={nestedThStyle}>수량</th>
+                <td style={nestedTdStyle}>{formattedAmt}</td>
               </tr>
               <tr>
                 <th style={nestedThStyle}>작업자</th>
@@ -319,11 +313,16 @@ const TappingProcessWork = () => {
         let updateData = {};
         if (data.jepum_cd) updateData.jepum_cd = data.jepum_cd;
         if (data.bin_no) updateData.bin_no = data.bin_no;
-        if (data.amt) updateData.amt = data.amt;
+
+        // 타입 방어: 문자열이든 숫자든 강제로 Number 처리
+        if (data.amt !== undefined && data.amt !== null) {
+          updateData.amt = Number(data.amt);
+        }
 
         form.setFieldsValue(updateData);
-        message.success("TEST 라벨 정보(수량 포함)가 세팅되었습니다.");
+        message.success("TEST 라벨 정보가 세팅되었습니다.");
 
+        // 정보 세팅 직후, Reel당 수량 팝업 모달 띄우기
         setReelSelection(4000);
         setIsReelModalVisible(true);
       }
@@ -333,16 +332,16 @@ const TappingProcessWork = () => {
     }
   };
 
-  // 📌 [수정] Reel당 수량 모달 확인 버튼 핸들러 (Math.floor로 내림 처리)
+  // 모달창 확인 시 로직 방어: 항상 Number() 로 치환하여 계산
   const handleReelModalOk = () => {
     const finalReelAmt =
-      reelSelection === "custom" ? customReelAmt : reelSelection;
-    const totalAmt = form.getFieldValue("amt") || 0;
+      reelSelection === "custom"
+        ? Number(customReelAmt)
+        : Number(reelSelection);
+    const totalAmt = Number(form.getFieldValue("amt")) || 0;
 
-    // 1. 폼에 Reel당 수량 세팅
     form.setFieldsValue({ reel_min_amt: finalReelAmt });
 
-    // 2. 총수량을 Reel당 수량으로 나누어 꽉 찬 Reel 개수만 계산 (내림 처리)
     if (finalReelAmt > 0) {
       form.setFieldsValue({ reel_count: Math.floor(totalAmt / finalReelAmt) });
     }
@@ -350,14 +349,14 @@ const TappingProcessWork = () => {
     setIsReelModalVisible(false);
   };
 
-  // 📌 [수정] 폼에서 수동으로 변경할 때도 Math.floor(내림) 적용
+  // 수동 입력 방어: 사용자가 직접 총수량이나 릴당수량을 수정할 때 즉시 자동계산
   const handleFormValuesChange = (changedValues, allValues) => {
     if (
       changedValues.hasOwnProperty("amt") ||
       changedValues.hasOwnProperty("reel_min_amt")
     ) {
-      const totalAmt = allValues.amt || 0;
-      const reelMinAmt = allValues.reel_min_amt || 1;
+      const totalAmt = Number(allValues.amt) || 0;
+      const reelMinAmt = Number(allValues.reel_min_amt) || 1;
 
       if (reelMinAmt > 0) {
         form.setFieldsValue({ reel_count: Math.floor(totalAmt / reelMinAmt) });
@@ -393,9 +392,9 @@ const TappingProcessWork = () => {
     try {
       const payload = {
         lot_no: values.lot_no,
-        amt: values.amt,
-        reel_count: values.reel_count,
-        reel_min_amt: values.reel_min_amt,
+        amt: Number(values.amt) || 0,
+        reel_count: Number(values.reel_count) || 0,
+        reel_min_amt: Number(values.reel_min_amt) || 0,
         man_cd: values.man_cd,
         bin_no: values.bin_no,
         jepum_cd: values.jepum_cd || "",
@@ -642,7 +641,7 @@ const TappingProcessWork = () => {
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 0, reel_count: 1, reel_min_amt: 0 }}
+            initialValues={{ amt: 0, reel_count: 0, reel_min_amt: 4000 }}
             style={{ maxWidth: 600 }}
             onValuesChange={handleFormValuesChange}
           >
@@ -690,12 +689,13 @@ const TappingProcessWork = () => {
                 inputMode={isVirtualKeyboardOn ? "text" : "none"}
               />
             </Form.Item>
+
             <Form.Item
               label="총수량"
               name="amt"
               rules={[{ required: true, message: "총수량" }]}
             >
-              <InputNumber min={1} style={{ width: "100%" }} />
+              <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               label="Reel당 수량"
@@ -711,6 +711,7 @@ const TappingProcessWork = () => {
             >
               <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
+
             <Form.Item
               label="작업자"
               name="man_cd"
@@ -783,8 +784,6 @@ const TappingProcessWork = () => {
           <h3 style={{ marginBottom: 20 }}>
             Reel 1개당 감길 수량을 선택하세요.
           </h3>
-
-          {/* 💥 수정 포인트: style={{ marginRight: 8 }} 제거 */}
           <Radio.Group
             onChange={(e) => setReelSelection(e.target.value)}
             value={reelSelection}
