@@ -390,6 +390,7 @@ const TappingProcessWork = () => {
   // 4) 등록/수정
   const onFinish = async (values) => {
     try {
+      // 📌 추가: payload에 bigo_3(작업 NO)와 bigo_4(장비명) 추가
       const payload = {
         lot_no: values.lot_no,
         amt: Number(values.amt) || 0,
@@ -398,6 +399,8 @@ const TappingProcessWork = () => {
         man_cd: values.man_cd,
         bin_no: values.bin_no,
         jepum_cd: values.jepum_cd || "",
+        bigo_3: values.bigo_3 || "", // 작업 NO
+        bigo_4: values.bigo_4 || "", // 장비명
       };
 
       const product = productList.find((p) => p.jepum_cd === values.jepum_cd);
@@ -451,6 +454,7 @@ const TappingProcessWork = () => {
 
   const handleEdit = (record) => {
     setEditingRecord(record);
+    // 📌 추가: 수정 시 폼에 bigo_3(작업 NO)와 bigo_4(장비명) 값 채워주기
     form.setFieldsValue({
       lot_no: record.lot_no,
       amt: record.amt,
@@ -459,6 +463,8 @@ const TappingProcessWork = () => {
       man_cd: record.man_cd,
       bin_no: record.bigo_1 || record.bin_no,
       jepum_cd: record.jepum_cd,
+      bigo_3: record.bigo_3 || "",
+      bigo_4: record.bigo_4 || "",
     });
     setActiveTab("1");
   };
@@ -501,6 +507,20 @@ const TappingProcessWork = () => {
       title: "제품명",
       dataIndex: "jepum_nm",
       key: "jepum_nm",
+      align: "center",
+    },
+    // 📌 추가: 작업 NO 컬럼
+    {
+      title: "작업 NO",
+      dataIndex: "bigo_3",
+      key: "bigo_3",
+      align: "center",
+    },
+    // 📌 추가: 장비명 컬럼
+    {
+      title: "장비명",
+      dataIndex: "bigo_4",
+      key: "bigo_4",
       align: "center",
     },
     {
@@ -686,6 +706,22 @@ const TappingProcessWork = () => {
             >
               <Input
                 placeholder="BIN NO (스캔 시 자동입력)"
+                inputMode={isVirtualKeyboardOn ? "text" : "none"}
+              />
+            </Form.Item>
+
+            {/* 📌 추가: 작업 NO (bigo_3) */}
+            <Form.Item label="작업 NO" name="bigo_3">
+              <Input
+                placeholder="작업 NO를 입력하세요"
+                inputMode={isVirtualKeyboardOn ? "text" : "none"}
+              />
+            </Form.Item>
+
+            {/* 📌 추가: 장비명 (bigo_4) */}
+            <Form.Item label="장비명" name="bigo_4">
+              <Input
+                placeholder="장비명을 입력하세요"
                 inputMode={isVirtualKeyboardOn ? "text" : "none"}
               />
             </Form.Item>
