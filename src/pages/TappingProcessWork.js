@@ -25,7 +25,7 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 // ------------------------------------------------------------------
-// 📌 TAPPING 전용 LabelToPrint 컴포넌트 (수정됨: 릴 수량만 표시)
+// 📌 TAPPING 전용 LabelToPrint 컴포넌트 (수정됨: 릴 수량 및 신규 항목 표시)
 // ------------------------------------------------------------------
 const LabelToPrint = ({ data }) => {
   if (!data) return null;
@@ -36,7 +36,7 @@ const LabelToPrint = ({ data }) => {
     padding: "0.5mm 0.3mm",
     boxSizing: "border-box",
     fontFamily: "Malgun Gothic, Arial, sans-serif",
-    fontSize: "7pt",
+    fontSize: "6.5pt", // 📌 항목이 늘어나서 폰트를 미세하게 조정 (7pt -> 6.5pt)
     fontWeight: "bold",
     lineHeight: 1.1,
     position: "relative",
@@ -56,8 +56,8 @@ const LabelToPrint = ({ data }) => {
 
   const thStyle = {
     border: "1px solid #333",
-    padding: "0.4mm 0.5mm",
-    fontSize: "7pt",
+    padding: "0.2mm 0.5mm", // 📌 세로 여백 축소
+    fontSize: "6.5pt",
     fontWeight: "bold",
     whiteSpace: "nowrap",
     textAlign: "left",
@@ -66,8 +66,8 @@ const LabelToPrint = ({ data }) => {
   };
   const tdWideStyle = {
     border: "1px solid #333",
-    padding: "0.4mm 0.5mm",
-    fontSize: "7pt",
+    padding: "0.2mm 0.5mm", // 📌 세로 여백 축소
+    fontSize: "6.5pt",
     fontWeight: "bold",
     verticalAlign: "middle",
     width: "85%",
@@ -87,14 +87,12 @@ const LabelToPrint = ({ data }) => {
 
   const nestedThStyle = {
     ...thStyle,
-    padding: "0.4mm 0.5mm",
     width: "45%",
     borderTop: "none",
     borderLeft: "none",
   };
   const nestedTdStyle = {
     ...tdWideStyle,
-    padding: "0.4mm 0.5mm",
     width: "75%",
     borderTop: "none",
     borderRight: "none",
@@ -113,7 +111,6 @@ const LabelToPrint = ({ data }) => {
   };
 
   const qrSize = 10; // 10mm
-  // 💥 수정: 릴에 감긴 수량(reel_min_amt)을 '수량'으로 단일 표기합니다.
   const formattedAmt = data.reel_min_amt
     ? Number(data.reel_min_amt).toLocaleString("en-US")
     : "0";
@@ -146,12 +143,8 @@ const LabelToPrint = ({ data }) => {
           <table style={nestedTableStyle}>
             <tbody>
               <tr>
-                <th style={{ ...nestedThStyle, borderBottom: "none" }}>
-                  BIN번호
-                </th>
-                <td style={{ ...nestedTdStyle, borderBottom: "none" }}>
-                  {data.bin_no || ""}
-                </td>
+                <th style={nestedThStyle}>BIN번호</th>
+                <td style={nestedTdStyle}>{data.bin_no || ""}</td>
               </tr>
               <tr>
                 <th style={nestedThStyle}>수량</th>
@@ -160,6 +153,16 @@ const LabelToPrint = ({ data }) => {
               <tr>
                 <th style={nestedThStyle}>작업자</th>
                 <td style={nestedTdStyle}>{data.man_cd}</td>
+              </tr>
+              {/* 📌 추가됨: 작업 NO */}
+              <tr>
+                <th style={nestedThStyle}>작업 NO</th>
+                <td style={nestedTdStyle}>{data.bigo_3 || ""}</td>
+              </tr>
+              {/* 📌 추가됨: 장비명 */}
+              <tr>
+                <th style={nestedThStyle}>장비명</th>
+                <td style={nestedTdStyle}>{data.bigo_4 || ""}</td>
               </tr>
             </tbody>
           </table>
@@ -228,7 +231,6 @@ const TappingProcessWork = () => {
   const openKeypad = (target) => {
     setKeypadTarget(target);
     let currentVal = form.getFieldValue(target) || "";
-    // 장비명(bigo_4)을 열 때 기존 값에 '#'이 있으면 제거하고 키패드에 띄움
     if (target === "bigo_4" && currentVal.startsWith("#")) {
       currentVal = currentVal.substring(1);
     }
@@ -248,7 +250,6 @@ const TappingProcessWork = () => {
 
   const handleKeypadOk = () => {
     let finalValue = keypadValue;
-    // 장비명(bigo_4)일 경우 값이 비어있지 않다면 무조건 앞에 '#' 추가
     if (keypadTarget === "bigo_4" && finalValue !== "") {
       finalValue = "#" + finalValue;
     }
@@ -279,6 +280,9 @@ const TappingProcessWork = () => {
       reel_min_amt: record.reel_min_amt || record.amt,
       bin_no: record.bigo_1 || record.bin_no,
       man_cd: record.man_cd,
+      // 📌 추가됨: 재인쇄 시에도 작업번호와 장비명 데이터 전달
+      bigo_3: record.bigo_3 || "",
+      bigo_4: record.bigo_4 || "",
     });
   };
 
@@ -291,7 +295,6 @@ const TappingProcessWork = () => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-      // 모달이 떠있을 때는 포커스를 뺏지 않도록 방어
       if (
         !barcodeScanOn ||
         activeTab !== "1" ||
@@ -359,7 +362,6 @@ const TappingProcessWork = () => {
         if (data.jepum_cd) updateData.jepum_cd = data.jepum_cd;
         if (data.bin_no) updateData.bin_no = data.bin_no;
 
-        // 타입 방어: 문자열이든 숫자든 강제로 Number 처리
         if (data.amt !== undefined && data.amt !== null) {
           updateData.amt = Number(data.amt);
         }
@@ -367,7 +369,6 @@ const TappingProcessWork = () => {
         form.setFieldsValue(updateData);
         message.success("TEST 라벨 정보가 세팅되었습니다.");
 
-        // 정보 세팅 직후, Reel당 수량 팝업 모달 띄우기
         setReelSelection(4000);
         setIsReelModalVisible(true);
       }
@@ -377,7 +378,6 @@ const TappingProcessWork = () => {
     }
   };
 
-  // 모달창 확인 시 로직 방어: 항상 Number() 로 치환하여 계산
   const handleReelModalOk = () => {
     const finalReelAmt =
       reelSelection === "custom"
@@ -394,7 +394,6 @@ const TappingProcessWork = () => {
     setIsReelModalVisible(false);
   };
 
-  // 수동 입력 방어: 사용자가 직접 총수량이나 릴당수량을 수정할 때 즉시 자동계산
   const handleFormValuesChange = (changedValues, allValues) => {
     if (
       changedValues.hasOwnProperty("amt") ||
@@ -443,8 +442,8 @@ const TappingProcessWork = () => {
         man_cd: values.man_cd,
         bin_no: values.bin_no,
         jepum_cd: values.jepum_cd || "",
-        bigo_3: values.bigo_3 || "", // 작업 NO
-        bigo_4: values.bigo_4 || "", // 장비명
+        bigo_3: values.bigo_3 || "",
+        bigo_4: values.bigo_4 || "",
       };
 
       const product = productList.find((p) => p.jepum_cd === values.jepum_cd);
@@ -533,7 +532,6 @@ const TappingProcessWork = () => {
     });
   };
 
-  // 6) 테이블 컬럼
   const columns = [
     {
       title: "작업일자",
@@ -751,21 +749,19 @@ const TappingProcessWork = () => {
               />
             </Form.Item>
 
-            {/* 📌 수정됨: 작업 NO 클릭 시 모달 오픈 */}
             <Form.Item label="작업 NO" name="bigo_3">
               <Input
                 placeholder="클릭하여 숫자 키패드로 입력"
-                readOnly // 모바일 기본 키보드 방지
+                readOnly
                 onClick={() => openKeypad("bigo_3")}
                 style={{ cursor: "pointer", backgroundColor: "#fafafa" }}
               />
             </Form.Item>
 
-            {/* 📌 수정됨: 장비명 클릭 시 모달 오픈 */}
             <Form.Item label="장비명" name="bigo_4">
               <Input
                 placeholder="클릭하여 숫자 키패드로 입력 (자동으로 # 붙음)"
-                readOnly // 모바일 기본 키보드 방지
+                readOnly
                 onClick={() => openKeypad("bigo_4")}
                 style={{ cursor: "pointer", backgroundColor: "#fafafa" }}
               />
@@ -850,7 +846,6 @@ const TappingProcessWork = () => {
         </TabPane>
       </Tabs>
 
-      {/* --- 📌 Reel당 수량 선택 팝업 모달 --- */}
       <Modal
         title="Reel당 수량 선택"
         open={isReelModalVisible}
@@ -873,6 +868,7 @@ const TappingProcessWork = () => {
           >
             <Radio.Button value={4000}>4,000개</Radio.Button>
             <Radio.Button value={5000}>5,000개</Radio.Button>
+            <Radio.Button value={6000}>6,000개</Radio.Button>
             <Radio.Button value="custom">직접 입력</Radio.Button>
           </Radio.Group>
 
@@ -897,7 +893,6 @@ const TappingProcessWork = () => {
         </div>
       </Modal>
 
-      {/* --- 📌 커스텀 숫자 키패드 모달 --- */}
       <Modal
         title={keypadTarget === "bigo_3" ? "작업 NO 입력" : "장비명 입력"}
         open={isKeypadVisible}
@@ -909,7 +904,6 @@ const TappingProcessWork = () => {
         getContainer={false}
       >
         <div style={{ textAlign: "center", padding: "10px 0" }}>
-          {/* 입력된 숫자를 보여주는 디스플레이 영역 */}
           <div
             style={{
               fontSize: "32px",
@@ -929,7 +923,6 @@ const TappingProcessWork = () => {
               : keypadValue || "\u00A0"}
           </div>
 
-          {/* 숫자 버튼 그리드 영역 */}
           <div
             style={{
               display: "grid",
@@ -969,7 +962,6 @@ const TappingProcessWork = () => {
         </div>
       </Modal>
 
-      {/* --- 📌 인쇄 미리보기 모달 --- */}
       <Modal
         title={modalTitle}
         open={!!printableData}
