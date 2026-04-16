@@ -209,6 +209,11 @@ const TappingProcessWork = () => {
   const [reelSelection, setReelSelection] = useState(4000);
   const [customReelAmt, setCustomReelAmt] = useState(3000);
 
+  // --- 📌 숫자 키패드 모달을 위한 State ---
+  const [isKeypadVisible, setIsKeypadVisible] = useState(false);
+  const [keypadTarget, setKeypadTarget] = useState(null); // 'bigo_3' 또는 'bigo_4'
+  const [keypadValue, setKeypadValue] = useState("");
+
   const v_db = "16_UR";
 
   // 1) 제품목록 불러오기
@@ -218,6 +223,39 @@ const TappingProcessWork = () => {
       .then((data) => setProductList(data))
       .catch((err) => console.error("제품목록 에러:", err));
   }, [v_db]);
+
+  // --- 📌 숫자 키패드 핸들러 ---
+  const openKeypad = (target) => {
+    setKeypadTarget(target);
+    let currentVal = form.getFieldValue(target) || "";
+    // 장비명(bigo_4)을 열 때 기존 값에 '#'이 있으면 제거하고 키패드에 띄움
+    if (target === "bigo_4" && currentVal.startsWith("#")) {
+      currentVal = currentVal.substring(1);
+    }
+    setKeypadValue(currentVal);
+    setIsKeypadVisible(true);
+  };
+
+  const handleKeypadClick = (val) => {
+    if (val === "C") {
+      setKeypadValue("");
+    } else if (val === "BACK") {
+      setKeypadValue((prev) => prev.slice(0, -1));
+    } else {
+      setKeypadValue((prev) => prev + val);
+    }
+  };
+
+  const handleKeypadOk = () => {
+    let finalValue = keypadValue;
+    // 장비명(bigo_4)일 경우 값이 비어있지 않다면 무조건 앞에 '#' 추가
+    if (keypadTarget === "bigo_4" && finalValue !== "") {
+      finalValue = "#" + finalValue;
+    }
+    form.setFieldsValue({ [keypadTarget]: finalValue });
+    setIsKeypadVisible(false);
+  };
+  // ------------------------------
 
   // --- 인쇄 관련 핸들러 ---
   const handleSimplePrint = () => {
@@ -253,7 +291,14 @@ const TappingProcessWork = () => {
     const resetIdleTimer = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
-      if (!barcodeScanOn || activeTab !== "1" || isReelModalVisible) return;
+      // 모달이 떠있을 때는 포커스를 뺏지 않도록 방어
+      if (
+        !barcodeScanOn ||
+        activeTab !== "1" ||
+        isReelModalVisible ||
+        isKeypadVisible
+      )
+        return;
       setIdleCountdown(10);
       countdownTimerRef.current = setInterval(() => {
         setIdleCountdown((prev) => Math.max(0, prev - 1));
@@ -283,7 +328,7 @@ const TappingProcessWork = () => {
       clearTimeout(idleTimerRef.current);
       clearInterval(countdownTimerRef.current);
     }
-  }, [barcodeScanOn, activeTab, isReelModalVisible]);
+  }, [barcodeScanOn, activeTab, isReelModalVisible, isKeypadVisible]);
 
   // --- 2) 바코드 스캔 처리 ---
   const handleBarcodeScan = async (e) => {
@@ -390,7 +435,6 @@ const TappingProcessWork = () => {
   // 4) 등록/수정
   const onFinish = async (values) => {
     try {
-      // 📌 추가: payload에 bigo_3(작업 NO)와 bigo_4(장비명) 추가
       const payload = {
         lot_no: values.lot_no,
         amt: Number(values.amt) || 0,
@@ -454,7 +498,6 @@ const TappingProcessWork = () => {
 
   const handleEdit = (record) => {
     setEditingRecord(record);
-    // 📌 추가: 수정 시 폼에 bigo_3(작업 NO)와 bigo_4(장비명) 값 채워주기
     form.setFieldsValue({
       lot_no: record.lot_no,
       amt: record.amt,
@@ -509,14 +552,12 @@ const TappingProcessWork = () => {
       key: "jepum_nm",
       align: "center",
     },
-    // 📌 추가: 작업 NO 컬럼
     {
       title: "작업 NO",
       dataIndex: "bigo_3",
       key: "bigo_3",
       align: "center",
     },
-    // 📌 추가: 장비명 컬럼
     {
       title: "장비명",
       dataIndex: "bigo_4",
@@ -710,19 +751,23 @@ const TappingProcessWork = () => {
               />
             </Form.Item>
 
-            {/* 📌 추가: 작업 NO (bigo_3) */}
+            {/* 📌 수정됨: 작업 NO 클릭 시 모달 오픈 */}
             <Form.Item label="작업 NO" name="bigo_3">
               <Input
-                placeholder="작업 NO를 입력하세요"
-                inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                placeholder="클릭하여 숫자 키패드로 입력"
+                readOnly // 모바일 기본 키보드 방지
+                onClick={() => openKeypad("bigo_3")}
+                style={{ cursor: "pointer", backgroundColor: "#fafafa" }}
               />
             </Form.Item>
 
-            {/* 📌 추가: 장비명 (bigo_4) */}
+            {/* 📌 수정됨: 장비명 클릭 시 모달 오픈 */}
             <Form.Item label="장비명" name="bigo_4">
               <Input
-                placeholder="장비명을 입력하세요"
-                inputMode={isVirtualKeyboardOn ? "text" : "none"}
+                placeholder="클릭하여 숫자 키패드로 입력 (자동으로 # 붙음)"
+                readOnly // 모바일 기본 키보드 방지
+                onClick={() => openKeypad("bigo_4")}
+                style={{ cursor: "pointer", backgroundColor: "#fafafa" }}
               />
             </Form.Item>
 
@@ -849,6 +894,78 @@ const TappingProcessWork = () => {
           <p style={{ marginTop: 15, color: "#888", fontSize: "12px" }}>
             선택 시 총수량에 비례하여 꽉 찬 Reel 개수가 자동 계산됩니다.
           </p>
+        </div>
+      </Modal>
+
+      {/* --- 📌 커스텀 숫자 키패드 모달 --- */}
+      <Modal
+        title={keypadTarget === "bigo_3" ? "작업 NO 입력" : "장비명 입력"}
+        open={isKeypadVisible}
+        onOk={handleKeypadOk}
+        onCancel={() => setIsKeypadVisible(false)}
+        centered
+        okText="확인"
+        cancelText="취소"
+        getContainer={false}
+      >
+        <div style={{ textAlign: "center", padding: "10px 0" }}>
+          {/* 입력된 숫자를 보여주는 디스플레이 영역 */}
+          <div
+            style={{
+              fontSize: "32px",
+              padding: "10px",
+              background: "#f0f0f0",
+              borderRadius: "8px",
+              minHeight: "60px",
+              marginBottom: "20px",
+              letterSpacing: "2px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {keypadTarget === "bigo_4" && keypadValue !== ""
+              ? `#${keypadValue}`
+              : keypadValue || "\u00A0"}
+          </div>
+
+          {/* 숫자 버튼 그리드 영역 */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "10px",
+            }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <Button
+                key={num}
+                style={{ height: "60px", fontSize: "24px", fontWeight: "bold" }}
+                onClick={() => handleKeypadClick(num.toString())}
+              >
+                {num}
+              </Button>
+            ))}
+            <Button
+              style={{ height: "60px", fontSize: "24px", fontWeight: "bold" }}
+              onClick={() => handleKeypadClick("C")}
+              danger
+            >
+              C
+            </Button>
+            <Button
+              style={{ height: "60px", fontSize: "24px", fontWeight: "bold" }}
+              onClick={() => handleKeypadClick("0")}
+            >
+              0
+            </Button>
+            <Button
+              style={{ height: "60px", fontSize: "24px", fontWeight: "bold" }}
+              onClick={() => handleKeypadClick("BACK")}
+            >
+              ←
+            </Button>
+          </div>
         </div>
       </Modal>
 
