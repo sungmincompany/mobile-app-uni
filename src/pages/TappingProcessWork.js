@@ -192,6 +192,7 @@ const TappingProcessWork = () => {
   const [fromDt, setFromDt] = useState(dayjs().startOf("month"));
   const [toDt, setToDt] = useState(dayjs());
   const [productList, setProductList] = useState([]);
+  const [workerList, setWorkerList] = useState([]); // 👈 추가된 부분
 
   // --- 인쇄를 위한 State ---
   const [printableData, setPrintableData] = useState(null);
@@ -225,6 +226,30 @@ const TappingProcessWork = () => {
       .then((res) => res.json())
       .then((data) => setProductList(data))
       .catch((err) => console.error("제품목록 에러:", err));
+  }, [v_db]);
+
+  // 👈 여기에 아래 작업자 목록 불러오기 로직 추가
+  useEffect(() => {
+    const fetchWorkerList = async () => {
+      try {
+        // 주의: TestResult에서는 부서코드가 P0503이었습니다.
+        // Tapping 공정의 부서코드가 다르다면 P0503 부분을 해당 부서코드로 수정해 주세요.
+        const res = await fetch(
+          `/api/select/etc/test_man_cd?v_db=${v_db}&dept_cd=P0503`,
+        );
+        if (!res.ok) throw new Error("작업자 목록 조회 오류");
+        const data = await res.json();
+        const formattedList = data.map((worker) => ({
+          value: worker.emp_nmk,
+          label: worker.emp_nmk,
+        }));
+        setWorkerList(formattedList);
+      } catch (err) {
+        console.error("fetchWorkerList 에러:", err);
+        message.error("작업자 목록을 불러오는 데 실패했습니다.");
+      }
+    };
+    fetchWorkerList();
   }, [v_db]);
 
   // --- 📌 숫자 키패드 핸들러 ---
@@ -792,9 +817,9 @@ const TappingProcessWork = () => {
             <Form.Item
               label="작업자"
               name="man_cd"
-              rules={[{ required: true, message: "작업자" }]}
+              rules={[{ required: true, message: "작업자를 선택하세요." }]}
             >
-              <Input inputMode={isVirtualKeyboardOn ? "text" : "none"} />
+              <Select placeholder="작업자 선택" options={workerList} />
             </Form.Item>
             <Form.Item>
               <Button
