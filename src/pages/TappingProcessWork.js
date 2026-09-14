@@ -19,6 +19,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { QRCodeSVG } from "qrcode.react";
+import { useReactToPrint } from "react-to-print";
 
 const { TabPane } = Tabs;
 const { confirm } = Modal;
@@ -27,18 +28,18 @@ const { Option } = Select;
 // ------------------------------------------------------------------
 // 📌 TAPPING 전용 LabelToPrint 컴포넌트 (수정됨: 릴 수량 및 신규 항목 표시)
 // ------------------------------------------------------------------
-const LabelToPrint = ({ data }) => {
+const LabelToPrint = ({ data, reelIndex, totalReels }) => {
   if (!data) return null;
 
   const labelStyle = {
     width: "50mm",
     height: "30mm",
-    padding: "0.5mm 0.3mm",
+    padding: "0.3mm 0.3mm",
     boxSizing: "border-box",
     fontFamily: "Malgun Gothic, Arial, sans-serif",
-    fontSize: "6.5pt", // 📌 항목이 늘어나서 폰트를 미세하게 조정 (7pt -> 6.5pt)
+    fontSize: "5.8pt",
     fontWeight: "bold",
-    lineHeight: 1.1,
+    lineHeight: 1.15,
     position: "relative",
     border: "1px dashed #999",
     backgroundColor: "white",
@@ -56,74 +57,92 @@ const LabelToPrint = ({ data }) => {
 
   const thStyle = {
     border: "1px solid #333",
-    padding: "0.2mm 0.5mm", // 📌 세로 여백 축소
-    fontSize: "6.5pt",
+    padding: "0.15mm 0.3mm",
+    fontSize: "5.8pt",
     fontWeight: "bold",
     whiteSpace: "nowrap",
     textAlign: "left",
-    width: "25%",
     backgroundColor: "#eee",
   };
-  const tdWideStyle = {
+
+  const tdStyle = {
     border: "1px solid #333",
-    padding: "0.2mm 0.5mm", // 📌 세로 여백 축소
-    fontSize: "6.5pt",
+    padding: "0.15mm 0.3mm",
+    fontSize: "5.8pt",
     fontWeight: "bold",
     verticalAlign: "middle",
-    width: "85%",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
 
-  const bottomContainerStyle = {
+  // 📌 중단 컨테이너 (BIN번호부터 장비명까지 5개 행 + 우측 QR)
+  const middleContainerStyle = {
     display: "flex",
     width: "100%",
     border: "1px solid #333",
     borderTop: "none",
   };
-  const leftInfoStyle = { width: "60%", height: "100%" };
+  const leftInfoStyle = { width: "68%", height: "100%" };
   const nestedTableStyle = { ...tableStyle, height: "100%" };
 
   const nestedThStyle = {
     ...thStyle,
-    width: "45%",
+    width: "38%",
     borderTop: "none",
     borderLeft: "none",
   };
   const nestedTdStyle = {
-    ...tdWideStyle,
-    width: "75%",
+    ...tdStyle,
+    width: "62%",
     borderTop: "none",
     borderRight: "none",
   };
 
   const rightQrStyle = {
-    width: "40%",
+    width: "32%",
     height: "100%",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    padding: "0.5mm",
+    padding: "0.2mm",
     boxSizing: "border-box",
     borderLeft: "1px solid #333",
   };
 
-  const qrSize = 10; // 10mm
+  const qrSize = 8.5; // 8.5mm
   const formattedAmt = data.reel_min_amt
     ? Number(data.reel_min_amt).toLocaleString("en-US")
-    : "0";
+    : (data.amt ? Number(data.amt).toLocaleString("en-US") : "0");
+
+  let formattedWorkDt = "";
+  if (data.work_dt) {
+    if (typeof data.work_dt === "string") {
+      if (data.work_dt.length === 8) {
+        formattedWorkDt = `${data.work_dt.slice(0, 4)}-${data.work_dt.slice(4, 6)}-${data.work_dt.slice(6, 8)}`;
+      } else {
+        formattedWorkDt = data.work_dt;
+      }
+    } else if (data.work_dt.format) {
+      formattedWorkDt = data.work_dt.format("YYYY-MM-DD");
+    }
+  } else {
+    formattedWorkDt = dayjs().format("YYYY-MM-DD");
+  }
 
   return (
     <div style={labelStyle} className="label-print-container-class">
+      {/* 1. 상단 테이블: 1행 모델명, 2행 LOT NO + 작업일 */}
       <table style={{ ...tableStyle }}>
         <tbody>
           <tr>
-            <th style={thStyle}>모델명</th>
+            <th style={{ ...thStyle, width: "16%" }}>모델명</th>
             <td
+              colSpan={3}
               style={{
-                ...tdWideStyle,
+                ...tdStyle,
+                width: "84%",
                 whiteSpace: "normal",
                 wordBreak: "break-all",
               }}
@@ -132,13 +151,16 @@ const LabelToPrint = ({ data }) => {
             </td>
           </tr>
           <tr>
-            <th style={thStyle}>LOT NO</th>
-            <td style={tdWideStyle}>{data.lot_no}</td>
+            <th style={{ ...thStyle, width: "16%" }}>LOT</th>
+            <td style={{ ...tdStyle, width: "38%" }}>{data.lot_no}</td>
+            <th style={{ ...thStyle, width: "18%" }}>작업일</th>
+            <td style={{ ...tdStyle, width: "28%" }}>{formattedWorkDt}</td>
           </tr>
         </tbody>
       </table>
 
-      <div style={bottomContainerStyle}>
+      {/* 2. 중단 컨테이너: 좌측 5개 행(BIN, 수량, 작업자, 작업NO, 장비명) + 우측 QR & Reel */}
+      <div style={middleContainerStyle}>
         <div style={leftInfoStyle}>
           <table style={nestedTableStyle}>
             <tbody>
@@ -154,15 +176,13 @@ const LabelToPrint = ({ data }) => {
                 <th style={nestedThStyle}>작업자</th>
                 <td style={nestedTdStyle}>{data.man_cd}</td>
               </tr>
-              {/* 📌 추가됨: 작업 NO */}
               <tr>
                 <th style={nestedThStyle}>작업 NO</th>
                 <td style={nestedTdStyle}>{data.bigo_3 || ""}</td>
               </tr>
-              {/* 📌 추가됨: 장비명 */}
               <tr>
-                <th style={nestedThStyle}>장비명</th>
-                <td style={nestedTdStyle}>{data.bigo_4 || ""}</td>
+                <th style={{ ...nestedThStyle, borderBottom: "none" }}>장비명</th>
+                <td style={{ ...nestedTdStyle, borderBottom: "none" }}>{data.bigo_4 || ""}</td>
               </tr>
             </tbody>
           </table>
@@ -174,8 +194,67 @@ const LabelToPrint = ({ data }) => {
             style={{ width: `${qrSize}mm`, height: `${qrSize}mm` }}
             level="M"
           />
+          {totalReels > 1 ? (
+            <div
+              style={{
+                marginTop: "0.8mm",
+                fontSize: "6.2pt",
+                fontWeight: "bold",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Reel {reelIndex || 1}/{totalReels}
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: "0.8mm",
+                fontSize: "6.2pt",
+                fontWeight: "bold",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              1 Reel
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 3. 📌 하단 비고 테이블: 우측 끝까지 100% 확장하여 사람이 펜으로 수기 작성하기 넉넉한 공간 확보 */}
+      <table style={{ ...tableStyle, border: "1px solid #333", borderTop: "none" }}>
+        <tbody>
+          <tr>
+            <th
+              style={{
+                ...thStyle,
+                width: "16%",
+                borderTop: "none",
+                borderBottom: "none",
+                borderLeft: "none",
+              }}
+            >
+              비고
+            </th>
+            <td
+              style={{
+                ...tdStyle,
+                width: "84%",
+                borderTop: "none",
+                borderBottom: "none",
+                borderRight: "none",
+                height: "4.2mm",
+                minHeight: "4.2mm",
+                whiteSpace: "normal",
+                wordBreak: "break-all",
+              }}
+            >
+              {data.bigo || "\u00A0"}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 };
@@ -196,6 +275,7 @@ const TappingProcessWork = () => {
 
   // --- 인쇄를 위한 State ---
   const [printableData, setPrintableData] = useState(null);
+  const [printLabelCount, setPrintLabelCount] = useState(1);
   const [modalTitle, setModalTitle] = useState("등록/수정 완료");
   const [openPopoverKey, setOpenPopoverKey] = useState(null);
 
@@ -283,10 +363,63 @@ const TappingProcessWork = () => {
   };
   // ------------------------------
 
-  // --- 인쇄 관련 핸들러 ---
-  const handleSimplePrint = () => {
-    window.print();
-  };
+  // --- 📌 react-to-print 전용 Ref 및 인쇄 핸들러 (위아래 빈페이지 방지) ---
+  const printRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: "Tapping_Label",
+    ignoreGlobalStyles: true,
+    pageStyle: `
+      @page {
+        size: 50mm 30mm;
+        margin: 0;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box !important;
+        margin: 0;
+        padding: 0;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 50mm !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print-area {
+        display: none !important;
+      }
+      .label-print-page {
+        width: 50mm !important;
+        height: 30mm !important;
+        max-height: 30mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .label-print-page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .label-print-container-class {
+        width: 50mm !important;
+        height: 30mm !important;
+        max-height: 30mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        border: none !important;
+        overflow: hidden !important;
+      }
+    `,
+  });
+
   const handleModalClose = () => {
     setPrintableData(null);
     if (editingRecord) {
@@ -297,15 +430,21 @@ const TappingProcessWork = () => {
 
   const handleRePrint = (record) => {
     const product = productList.find((p) => p.jepum_cd === record.jepum_cd);
+    const reelCount = Number(record.lot_seq) || 1;
     setModalTitle("라벨 재인쇄");
+    setPrintLabelCount(reelCount);
     setPrintableData({
       lot_no: record.lot_no,
       jepum_nm: product ? product.jepum_nm : record.jepum_cd,
       amt: record.amt,
-      reel_min_amt: record.reel_min_amt || record.amt,
+      reel_min_amt:
+        record.reel_min_amt ||
+        (reelCount > 0 && record.amt ? Math.floor(record.amt / reelCount) : record.amt),
+      reel_count: reelCount,
       bin_no: record.bigo_1 || record.bin_no,
       man_cd: record.man_cd,
-      // 📌 추가됨: 재인쇄 시에도 작업번호와 장비명 데이터 전달
+      work_dt: record.work_dt,
+      bigo: record.bigo || record.bigo_2 || "",
       bigo_3: record.bigo_3 || "",
       bigo_4: record.bigo_4 || "",
     });
@@ -459,6 +598,10 @@ const TappingProcessWork = () => {
   // 4) 등록/수정
   const onFinish = async (values) => {
     try {
+      const work_dt_str = values.work_dt
+        ? values.work_dt.format("YYYY-MM-DD")
+        : dayjs().format("YYYY-MM-DD");
+
       const payload = {
         lot_no: values.lot_no,
         amt: Number(values.amt) || 0,
@@ -469,13 +612,19 @@ const TappingProcessWork = () => {
         jepum_cd: values.jepum_cd || "",
         bigo_3: values.bigo_3 || "",
         bigo_4: values.bigo_4 || "",
+        work_dt: work_dt_str,
+        bigo: values.bigo || "",
       };
 
       const product = productList.find((p) => p.jepum_cd === values.jepum_cd);
       const dataForPrint = {
         ...values,
+        work_dt: work_dt_str,
+        bigo: values.bigo || "",
         jepum_nm: product ? product.jepum_nm : values.jepum_cd,
       };
+
+      const reelCnt = Number(values.reel_count) || 1;
 
       if (!editingRecord) {
         const res = await fetch(`/api/insert/etc/tapping-result?v_db=${v_db}`, {
@@ -490,8 +639,10 @@ const TappingProcessWork = () => {
           message.success("등록성공");
           fetchTapingResults(fromDt, toDt);
           setModalTitle("등록 완료");
+          setPrintLabelCount(reelCnt);
           setPrintableData(dataForPrint);
           form.resetFields();
+          form.setFieldsValue({ work_dt: dayjs() });
         }
       } else {
         const res = await fetch(`/api/update/etc/tapping-result?v_db=${v_db}`, {
@@ -506,8 +657,10 @@ const TappingProcessWork = () => {
           message.success("수정성공");
           fetchTapingResults(fromDt, toDt);
           setModalTitle("수정 완료");
+          setPrintLabelCount(reelCnt);
           setPrintableData(dataForPrint);
           form.resetFields();
+          form.setFieldsValue({ work_dt: dayjs() });
         }
       }
     } catch (err) {
@@ -522,7 +675,18 @@ const TappingProcessWork = () => {
 
   const handleEdit = (record) => {
     setEditingRecord(record);
+    let workDtObj = dayjs();
+    if (record.work_dt && record.work_dt.length === 8) {
+      const year = record.work_dt.slice(0, 4);
+      const month = record.work_dt.slice(4, 6);
+      const day = record.work_dt.slice(6, 8);
+      workDtObj = dayjs(`${year}-${month}-${day}`);
+    } else if (record.work_dt) {
+      workDtObj = dayjs(record.work_dt);
+    }
+
     form.setFieldsValue({
+      work_dt: workDtObj,
       lot_no: record.lot_no,
       amt: record.amt,
       reel_min_amt: record.reel_min_amt || record.amt,
@@ -532,6 +696,7 @@ const TappingProcessWork = () => {
       jepum_cd: record.jepum_cd,
       bigo_3: record.bigo_3 || "",
       bigo_4: record.bigo_4 || "",
+      bigo: record.bigo || record.bigo_2 || "",
     });
     setActiveTab("1");
   };
@@ -600,6 +765,13 @@ const TappingProcessWork = () => {
           <div>{record.man_cd}</div>
         </>
       ),
+    },
+    {
+      title: "비고",
+      dataIndex: "bigo",
+      key: "bigo",
+      align: "center",
+      render: (text, record) => text || record.bigo_2 || "-",
     },
     {
       title: "작업",
@@ -725,10 +897,29 @@ const TappingProcessWork = () => {
             layout="vertical"
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
-            initialValues={{ amt: 0, reel_count: 0, reel_min_amt: 4000 }}
+            initialValues={{
+              amt: 0,
+              reel_count: 0,
+              reel_min_amt: 4000,
+              work_dt: dayjs(),
+              bigo: "",
+            }}
             style={{ maxWidth: 600 }}
             onValuesChange={handleFormValuesChange}
           >
+            {/* 📌 추가됨: 작업일자 */}
+            <Form.Item
+              label="작업일자"
+              name="work_dt"
+              rules={[{ required: true, message: "작업일자를 선택하세요." }]}
+            >
+              <DatePicker
+                placeholder="작업일자"
+                style={{ width: "100%" }}
+                format="YYYY-MM-DD"
+              />
+            </Form.Item>
+
             <Form.Item
               label="LOT NO"
               name="lot_no"
@@ -821,6 +1012,15 @@ const TappingProcessWork = () => {
             >
               <Select placeholder="작업자 선택" options={workerList} />
             </Form.Item>
+
+            {/* 📌 추가됨: 비고 (수기 기록 가능) */}
+            <Form.Item label="비고 (수기 기록용 또는 비고 메모)" name="bigo">
+              <Input
+                placeholder="비고 입력 (미입력 시 라벨에 수기 기록용 공란 출력)"
+                inputMode={isVirtualKeyboardOn ? "text" : "none"}
+              />
+            </Form.Item>
+
             <Form.Item>
               <Button
                 type="primary"
@@ -829,7 +1029,14 @@ const TappingProcessWork = () => {
               >
                 {editingRecord ? "수정하기" : "등록하기"}
               </Button>
-              <Button onClick={() => form.resetFields()}>초기화</Button>
+              <Button
+                onClick={() => {
+                  form.resetFields();
+                  form.setFieldsValue({ work_dt: dayjs() });
+                }}
+              >
+                초기화
+              </Button>
             </Form.Item>
           </Form>
         </TabPane>
@@ -991,7 +1198,7 @@ const TappingProcessWork = () => {
         title={modalTitle}
         open={!!printableData}
         onCancel={handleModalClose}
-        width={400}
+        width={450}
         footer={null}
         getContainer={false}
       >
@@ -1002,21 +1209,110 @@ const TappingProcessWork = () => {
               : `다음 라벨을 재인쇄합니다.`}
           </p>
           <hr style={{ margin: "16px 0" }} />
+
+          <div
+            className="no-print-area"
+            style={{
+              marginBottom: 12,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#f7f7f7",
+              padding: "8px 12px",
+              borderRadius: "6px",
+            }}
+          >
+            <span style={{ fontWeight: "bold" }}>발행 라벨 수량 (Reel 수):</span>
+            <Space>
+              <InputNumber
+                min={1}
+                max={50}
+                value={printLabelCount}
+                onChange={(val) => setPrintLabelCount(val || 1)}
+                size="middle"
+                style={{ width: 80 }}
+              />
+              <span style={{ fontWeight: "bold" }}>장</span>
+            </Space>
+          </div>
+
           <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
             인쇄 미리보기 (50mm x 30mm)
           </h3>
 
+          {/* 모달 화면 미리보기 스크롤 영역 (화면 전용) */}
           <div
+            className="no-print-area"
             style={{
-              margin: "20px 0",
-              display: "flex",
-              justifyContent: "center",
+              maxHeight: "380px",
+              overflowY: "auto",
+              padding: "8px",
+              background: "#fafafa",
+              border: "1px solid #eee",
+              borderRadius: "6px",
             }}
           >
-            {printableData && <LabelToPrint data={printableData} />}
+            {/* 실제 인쇄용 컨테이너: ref={printRef} (스크롤바, max-height 일체 없음!) */}
+            <div ref={printRef}>
+              {printableData &&
+                Array.from({ length: printLabelCount }).map((_, idx) => {
+                  const reelIdx = idx + 1;
+                  const isLastReel = reelIdx === printLabelCount;
+                  let currentReelAmt = printableData.reel_min_amt;
+                  if (printableData.amt && printableData.reel_min_amt) {
+                    const totalAmt = Number(printableData.amt);
+                    const standardAmt = Number(printableData.reel_min_amt);
+                    if (isLastReel && totalAmt > 0) {
+                      const remainder =
+                        totalAmt - standardAmt * (printLabelCount - 1);
+                      if (remainder > 0) {
+                        currentReelAmt = remainder;
+                      }
+                    }
+                  }
+                  const labelData = {
+                    ...printableData,
+                    reel_min_amt: currentReelAmt,
+                  };
+
+                  return (
+                    <div
+                      key={idx}
+                      className="label-print-page"
+                      style={{
+                        marginBottom: idx < printLabelCount - 1 ? 16 : 0,
+                      }}
+                    >
+                      <div
+                        className="no-print-area"
+                        style={{
+                          textAlign: "center",
+                          fontSize: "11px",
+                          color: "#555",
+                          fontWeight: "bold",
+                          marginBottom: 4,
+                        }}
+                      >
+                        [ 라벨 {reelIdx} / {printLabelCount} ] (수량:{" "}
+                        {Number(currentReelAmt).toLocaleString()}개)
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "center" }}>
+                        <LabelToPrint
+                          data={labelData}
+                          reelIndex={reelIdx}
+                          totalReels={printLabelCount}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
 
-          <div style={{ textAlign: "right", marginTop: "24px" }}>
+          <div
+            style={{ textAlign: "right", marginTop: "24px" }}
+            className="no-print-area"
+          >
             <Button
               key="close"
               onClick={handleModalClose}
@@ -1024,8 +1320,8 @@ const TappingProcessWork = () => {
             >
               닫기
             </Button>
-            <Button key="print" type="primary" onClick={handleSimplePrint}>
-              라벨 인쇄
+            <Button key="print" type="primary" onClick={handlePrint}>
+              라벨 {printLabelCount}장 인쇄
             </Button>
           </div>
         </div>

@@ -12,36 +12,33 @@ code {
     monospace;
 }
 
-/* --- 📌 [수정] CSS 인쇄 규칙 (50mm x 30mm) --- */
+/* --- 📌 [기본] CSS 인쇄 규칙 (50mm x 30mm) --- */
 
-/* 1. 용지 크기 정의: 가로 50mm, 세로 30mm로 설정 */
+/* 1. 용지 크기 정의: 가로 50mm, 세로 30mm */
 @page {
-  size: 50mm 30mm; /* 👈 수정: 50mm x 30mm */
+  size: 50mm 30mm;
   margin: 0;
 }
 
 @media print {
-  
-  /* 2. 💥 [핵심 1] 모든 상위 컨테이너의 높이를 0으로 만들어 
-     다중 페이지 문제를 원천 봉쇄합니다. 
-   */
+  /* 2. 모든 상위 컨테이너의 높이를 0으로 만들어 다중 페이지 문제를 원천 봉쇄합니다. */
   html, body, #root {
     height: 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
   }
   
-  /* 3. 💥 [핵심 2] 메인 화면(날짜 포함)을 '공간'까지 없앱니다. */
+  /* 3. 메인 화면(날짜 포함)을 '공간'까지 없앱니다. */
   .no-print {
     display: none !important;
   }
 
-  /* 4. 💥 [핵심 3] body의 *모든* 요소를 숨깁니다 (만약을 대비). */
+  /* 4. body의 모든 요소를 숨깁니다. */
   body * {
     visibility: hidden !important;
   }
   
-  /* 5. 💥 모달 껍데기만 다시 켭니다. */
+  /* 5. 모달 껍데기만 다시 켭니다. */
   #test-result-container,
   #test-result-container .ant-modal-wrap,
   #test-result-container .ant-modal,
@@ -50,7 +47,7 @@ code {
   #test-result-container .modal-print-preview-content,
   #test-result-container .label-print-container-class,
   #test-result-container .label-print-container-class * {
-      visibility: visible !important;
+    visibility: visible !important;
   }
 
   /* 6. 모든 래퍼(wrapper)의 스타일을 리셋합니다. */
@@ -65,28 +62,28 @@ code {
     background: none !important;
     border: none !important;
     box-shadow: none !important;
-    height: auto !important; /* 높이 리셋 */
+    height: auto !important;
   }
 
-  /* 7. 💥 모달의 불필요한 부분(헤더, 버튼 등)을 숨깁니다. */
+  /* 7. 모달의 불필요한 부분(헤더, 버튼 등)을 숨깁니다. */
   .ant-modal-header,
   .ant-modal-close,
   .modal-print-preview-content > p,
   .modal-print-preview-content > hr,
   .modal-print-preview-content > h3,
   .modal-print-preview-content > div:last-child {
-      display: none !important;
+    display: none !important;
   }
 
-/* 8. 💥 라벨을 (0,0)에 강제 배치합니다. */
+  /* 8. 라벨을 (0,0)에 강제 배치합니다. */
   .label-print-container-class {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 50mm !important; /* 👈 수정: 50mm */
-    height: 30mm !important; /* 👈 수정: 30mm */
+    width: 50mm !important;
+    height: 30mm !important;
     border: none !important;
-    padding: 0 !important; /* 👈 [중요] CSS에서는 padding 0유지. 실제 여백은 JS labelStyle에서 boxSizing으로 제어 */
+    padding: 0 !important;
     margin: 0 !important;
     box-sizing: border-box !important;
     overflow: visible !important;
