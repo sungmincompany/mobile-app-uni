@@ -152,8 +152,8 @@ const LabelToPrint = ({ data, reelIndex, totalReels }) => {
           </tr>
           <tr>
             <th style={{ ...thStyle, width: "16%" }}>LOT</th>
-            <td style={{ ...tdStyle, width: "46%", whiteSpace: "normal", wordBreak: "break-all" }}>{data.lot_no}</td>
-            <th style={{ ...thStyle, width: "14%" }}>작업일</th>
+            <td style={{ ...tdStyle, width: "50%", whiteSpace: "normal", wordBreak: "break-all" }}>{data.lot_no}</td>
+            <th style={{ ...thStyle, width: "10%" }}>작업일</th>
             <td style={{ ...tdStyle, width: "24%" }}>{formattedWorkDt}</td>
           </tr>
         </tbody>
